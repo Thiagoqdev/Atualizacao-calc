@@ -222,4 +222,4 @@ Proprietária - Todos os direitos reservados.
 
 ## Contato
 
-Para suporte técnico: suporte@calculosjuridicos.com
+Para suporte técnico: thiagoq.dev@gmail.com
