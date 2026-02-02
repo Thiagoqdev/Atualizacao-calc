@@ -1,2 +1,0 @@
-class ExternalAPIException(Exception):
-    pass

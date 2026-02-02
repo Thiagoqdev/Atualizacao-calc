@@ -1,70 +1,225 @@
-# Getting Started with Create React App
+# Sistema de Cálculos Jurídicos Financeiros
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Sistema web completo para cálculos de atualização financeira jurídica, similar ao drcalc.net.
 
-## Available Scripts
+## Tecnologias
 
-In the project directory, you can run:
+### Backend
+- Java 17+
+- Spring Boot 3.2
+- Spring Security + JWT
+- Spring Data JPA / Hibernate
+- MySQL 8+
+- Flyway (migrações)
+- OpenAPI/Swagger
 
-### `npm start`
+### Frontend
+- React 18
+- Bootstrap 5 / React Bootstrap
+- React Router DOM
+- Axios
+- React Hook Form
+- React Toastify
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Estrutura do Projeto
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```
+├── backend/                    # API REST Spring Boot
+│   ├── src/main/java/
+│   │   └── com/calculosjuridicos/
+│   │       ├── config/         # Configurações
+│   │       ├── controller/     # Controllers REST
+│   │       ├── dto/            # DTOs request/response
+│   │       ├── entity/         # Entidades JPA
+│   │       ├── exception/      # Tratamento de erros
+│   │       ├── repository/     # Repositórios JPA
+│   │       ├── security/       # JWT e autenticação
+│   │       └── service/        # Lógica de negócio
+│   ├── src/main/resources/
+│   │   ├── db/migration/       # Scripts Flyway
+│   │   └── application.yml     # Configurações
+│   └── pom.xml
+│
+├── frontend/                   # SPA React
+│   ├── src/
+│   │   ├── api/               # Clientes API
+│   │   ├── components/        # Componentes React
+│   │   ├── context/           # Contexts (Auth)
+│   │   ├── pages/             # Páginas
+│   │   └── App.jsx
+│   └── package.json
+│
+└── docker-compose.yml         # Orquestração Docker
+```
 
-### `npm test`
+## Pré-requisitos
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Java 17+ (JDK)
+- Maven 3.8+
+- Node.js 18+ e npm
+- MySQL 8+ (ou Docker)
 
-### `npm run build`
+## Configuração do Banco de Dados
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Opção 1: MySQL local
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```sql
+-- Criar banco de dados
+CREATE DATABASE calculos_juridicos
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+-- Criar usuário
+CREATE USER 'calcjuridico'@'localhost' IDENTIFIED BY 'senha_segura';
+GRANT ALL PRIVILEGES ON calculos_juridicos.* TO 'calcjuridico'@'localhost';
+FLUSH PRIVILEGES;
+```
 
-### `npm run eject`
+### Opção 2: Docker
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+docker run -d \
+  --name mysql-calcjuridico \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=calculos_juridicos \
+  -e MYSQL_USER=calcjuridico \
+  -e MYSQL_PASSWORD=senha_segura \
+  -p 3306:3306 \
+  mysql:8.0
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Executando o Backend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd backend
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# Instalar dependências e compilar
+mvn clean install
 
-## Learn More
+# Executar (development)
+mvn spring-boot:run
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Ou com perfil específico
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+A API estará disponível em: http://localhost:8081
 
-### Code Splitting
+### Documentação da API (Swagger)
+- Swagger UI: http://localhost:8081/swagger-ui.html
+- OpenAPI JSON: http://localhost:8081/api-docs
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Executando o Frontend
 
-### Analyzing the Bundle Size
+```bash
+cd frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+# Instalar dependências
+npm install
 
-### Making a Progressive Web App
+# Executar (development)
+npm run dev
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# Build para produção
+npm run build
+```
 
-### Advanced Configuration
+O frontend estará disponível em: http://localhost:5173
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Variáveis de Ambiente
 
-### Deployment
+### Backend (application.yml)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `DB_USERNAME` | Usuário MySQL | calcjuridico |
+| `DB_PASSWORD` | Senha MySQL | senha_segura |
+| `JWT_SECRET` | Chave secreta JWT | (gerada) |
 
-### `npm run build` fails to minify
+### Frontend (.env)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```env
+VITE_API_URL=http://localhost:8081/api
+```
+
+## Docker Compose (Produção)
+
+```bash
+# Iniciar todos os serviços
+docker-compose up -d
+
+# Verificar logs
+docker-compose logs -f
+
+# Parar serviços
+docker-compose down
+```
+
+## Endpoints Principais
+
+### Autenticação
+- `POST /api/auth/register` - Registrar usuário
+- `POST /api/auth/login` - Login
+- `POST /api/auth/refresh` - Renovar token
+- `GET /api/auth/me` - Dados do usuário autenticado
+
+### Processos
+- `GET /api/processos` - Listar processos
+- `POST /api/processos` - Criar processo
+- `GET /api/processos/{id}` - Buscar processo
+- `PUT /api/processos/{id}` - Atualizar processo
+- `DELETE /api/processos/{id}` - Excluir processo
+
+### Cálculos
+- `POST /api/calculos/preview` - Preview sem salvar
+- `GET /api/calculos` - Listar cálculos
+- `POST /api/processos/{id}/calculos` - Criar cálculo
+- `GET /api/calculos/{id}` - Buscar cálculo
+- `POST /api/calculos/{id}/executar` - Executar cálculo
+- `DELETE /api/calculos/{id}` - Excluir cálculo
+- `GET /api/calculos/{id}/relatorio` - Download relatório
+
+### Índices Monetários
+- `GET /api/indices` - Listar tabelas de índices
+- `GET /api/indices/{id}/valores` - Listar valores
+- `POST /api/indices/{id}/valores/import` - Importar CSV
+
+## Funcionalidades
+
+### Correção Monetária
+- Índices suportados: IPCA-E, INPC, IGP-M, TR, SELIC
+- Importação de valores via CSV
+- Integração com APIs oficiais (IBGE, BCB)
+
+### Juros
+- Juros simples e compostos
+- Periodicidade: diária, mensal, anual
+- Pro rata die
+
+### Cálculos
+- Múltiplas parcelas com datas diferentes
+- Multa e honorários configuráveis
+- Detalhamento mensal da evolução
+- Exportação PDF e Excel
+
+## Testes
+
+### Backend
+```bash
+cd backend
+mvn test
+```
+
+### Frontend
+```bash
+cd frontend
+npm test
+```
+
+## Licença
+
+Proprietária - Todos os direitos reservados.
+
+## Contato
+
+Para suporte técnico: suporte@calculosjuridicos.com
