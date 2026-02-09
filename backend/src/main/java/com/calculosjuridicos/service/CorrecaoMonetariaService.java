@@ -48,7 +48,7 @@ public class CorrecaoMonetariaService {
         // Buscar índice do mês anterior à data inicial
         LocalDate competenciaInicial = dataInicial.withDayOfMonth(1).minusMonths(1);
         ValorIndice indiceInicial = valorIndiceRepository
-            .findByTabelaIndiceIdAndCompetenciaLessThanEqual(tabelaIndiceId, competenciaInicial)
+            .findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(tabelaIndiceId, competenciaInicial)
             .orElseThrow(() -> new BusinessException(
                 "Índice não encontrado para a competência: " + competenciaInicial
             ));
@@ -56,7 +56,7 @@ public class CorrecaoMonetariaService {
         // Buscar índice do mês da data final
         LocalDate competenciaFinal = dataFinal.withDayOfMonth(1);
         ValorIndice indiceFinal = valorIndiceRepository
-            .findByTabelaIndiceIdAndCompetenciaLessThanEqual(tabelaIndiceId, competenciaFinal)
+            .findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(tabelaIndiceId, competenciaFinal)
             .orElseThrow(() -> new BusinessException(
                 "Índice não encontrado para a competência: " + competenciaFinal
             ));
@@ -91,14 +91,14 @@ public class CorrecaoMonetariaService {
 
         LocalDate competenciaInicial = dataInicial.withDayOfMonth(1).minusMonths(1);
         ValorIndice indiceInicial = valorIndiceRepository
-            .findByTabelaIndiceIdAndCompetenciaLessThanEqual(tabelaIndiceId, competenciaInicial)
+            .findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(tabelaIndiceId, competenciaInicial)
             .orElseThrow(() -> new BusinessException(
                 "Índice não encontrado para a competência: " + competenciaInicial
             ));
 
         LocalDate competenciaFinal = dataFinal.withDayOfMonth(1);
         ValorIndice indiceFinal = valorIndiceRepository
-            .findByTabelaIndiceIdAndCompetenciaLessThanEqual(tabelaIndiceId, competenciaFinal)
+            .findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(tabelaIndiceId, competenciaFinal)
             .orElseThrow(() -> new BusinessException(
                 "Índice não encontrado para a competência: " + competenciaFinal
             ));

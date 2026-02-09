@@ -37,6 +37,11 @@ services:
       SPRING_DATASOURCE_USERNAME: calcjuridico
       SPRING_DATASOURCE_PASSWORD: senha_segura
       JWT_SECRET: chave_secreta_muito_longa_com_pelo_menos_512_bits_para_hs512_algorithm_security_key_12345678901234567890
+      # BCB SGS API Configuration
+      INDICES_BCB_BASE_URL: https://api.bcb.gov.br
+      INDICES_BCB_TIMEOUT: 30000
+      INDICES_SYNC_ENABLED: "true"
+      INDICES_SYNC_CRON: "0 0 6 15 * ?"
     depends_on:
       mysql:
         condition: service_healthy

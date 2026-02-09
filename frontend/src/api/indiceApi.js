@@ -32,11 +32,21 @@ export const indiceApi = {
     return response.data;
   },
 
-  sincronizar: async (tabelaId, dataInicial, dataFinal) => {
-    const response = await apiClient.post(`/indices/${tabelaId}/sync`, {
-      dataInicial,
-      dataFinal,
-    });
+  sincronizar: async (tabelaId, dataInicial = null, dataFinal = null) => {
+    const params = {};
+    if (dataInicial) params.dataInicial = dataInicial;
+    if (dataFinal) params.dataFinal = dataFinal;
+
+    const response = await apiClient.post(`/indices/${tabelaId}/sync`, null, { params });
+    return response.data;
+  },
+
+  sincronizarTodos: async (dataInicial = null, dataFinal = null) => {
+    const params = {};
+    if (dataInicial) params.dataInicial = dataInicial;
+    if (dataFinal) params.dataFinal = dataFinal;
+
+    const response = await apiClient.post('/indices/sync/todos', null, { params });
     return response.data;
   },
 };

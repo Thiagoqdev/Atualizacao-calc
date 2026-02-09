@@ -22,11 +22,9 @@ public interface ValorIndiceRepository extends JpaRepository<ValorIndice, Long> 
         @Param("dataFinal") LocalDate dataFinal
     );
 
-    @Query("SELECT v FROM ValorIndice v WHERE v.tabelaIndice.id = :tabelaIndiceId " +
-           "AND v.competencia <= :competencia ORDER BY v.competencia DESC LIMIT 1")
-    Optional<ValorIndice> findByTabelaIndiceIdAndCompetenciaLessThanEqual(
-        @Param("tabelaIndiceId") Long tabelaIndiceId,
-        @Param("competencia") LocalDate competencia
+    Optional<ValorIndice> findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
+        Long tabelaIndiceId,
+        LocalDate competencia
     );
 
     Optional<ValorIndice> findByTabelaIndiceIdAndCompetencia(Long tabelaIndiceId, LocalDate competencia);

@@ -1,6 +1,6 @@
 # Sistema de Cálculos Jurídicos Financeiros
 
-Sistema web completo para cálculos de atualização financeira jurídica.
+Sistema web completo para cálculos de atualização financeira jurídica, similar ao drcalc.net.
 
 ## Tecnologias
 
@@ -222,4 +222,4 @@ Proprietária - Todos os direitos reservados.
 
 ## Contato
 
-Para suporte técnico: thiagoq.dev@gmail.com
+Para suporte técnico: suporte@calculosjuridicos.com

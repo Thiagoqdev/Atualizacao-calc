@@ -64,11 +64,11 @@ class CorrecaoMonetariaServiceTest {
             .valor(new BigDecimal("125.00000000"))
             .build();
 
-        when(valorIndiceRepository.findByTabelaIndiceIdAndCompetenciaLessThanEqual(
+        when(valorIndiceRepository.findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
             eq(1L), eq(LocalDate.of(2019, 12, 1))))
             .thenReturn(Optional.of(indiceInicial));
 
-        when(valorIndiceRepository.findByTabelaIndiceIdAndCompetenciaLessThanEqual(
+        when(valorIndiceRepository.findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
             eq(1L), eq(LocalDate.of(2024, 1, 1))))
             .thenReturn(Optional.of(indiceFinal));
 
@@ -121,7 +121,7 @@ class CorrecaoMonetariaServiceTest {
     @Test
     @DisplayName("Deve lançar exceção quando índice inicial não encontrado")
     void deveLancarExcecaoQuandoIndiceInicialNaoEncontrado() {
-        when(valorIndiceRepository.findByTabelaIndiceIdAndCompetenciaLessThanEqual(
+        when(valorIndiceRepository.findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
             any(), any()))
             .thenReturn(Optional.empty());
 
@@ -149,7 +149,7 @@ class CorrecaoMonetariaServiceTest {
             .valor(new BigDecimal("5678.25000000"))
             .build();
 
-        when(valorIndiceRepository.findByTabelaIndiceIdAndCompetenciaLessThanEqual(
+        when(valorIndiceRepository.findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
             eq(1L), any()))
             .thenReturn(Optional.of(indiceInicial))
             .thenReturn(Optional.of(indiceFinal));
@@ -180,7 +180,7 @@ class CorrecaoMonetariaServiceTest {
             .valor(new BigDecimal("150.00000000"))
             .build();
 
-        when(valorIndiceRepository.findByTabelaIndiceIdAndCompetenciaLessThanEqual(
+        when(valorIndiceRepository.findFirstByTabelaIndiceIdAndCompetenciaLessThanEqualOrderByCompetenciaDesc(
             eq(1L), any()))
             .thenReturn(Optional.of(indiceInicial))
             .thenReturn(Optional.of(indiceFinal));

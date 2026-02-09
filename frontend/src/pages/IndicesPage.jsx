@@ -15,6 +15,7 @@ const IndicesPage = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [arquivo, setArquivo] = useState(null);
   const [importando, setImportando] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
 
   useEffect(() => {
     carregarTabelas();
@@ -78,6 +79,49 @@ const IndicesPage = () => {
     }
   };
 
+  const handleSincronizar = async () => {
+    if (!tabelaSelecionada) return;
+
+    setSincronizando(true);
+    try {
+      const result = await indiceApi.sincronizar(tabelaSelecionada.id);
+      toast.success(
+        `Sincronizado com BCB: ${result.registrosImportados} novos, ${result.registrosAtualizados} atualizados`
+      );
+      if (result.erros && result.erros.length > 0) {
+        result.erros.forEach((erro) => toast.warning(erro));
+      }
+      carregarValores(tabelaSelecionada.id);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Erro ao sincronizar com o Banco Central');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  const handleSincronizarTodos = async () => {
+    setSincronizando(true);
+    try {
+      const resultados = await indiceApi.sincronizarTodos();
+      let totalNovos = 0;
+      let totalAtualizados = 0;
+      Object.entries(resultados).forEach(([nome, result]) => {
+        totalNovos += result.registrosImportados;
+        totalAtualizados += result.registrosAtualizados;
+      });
+      toast.success(
+        `Todos sincronizados: ${totalNovos} novos, ${totalAtualizados} atualizados`
+      );
+      if (tabelaSelecionada) {
+        carregarValores(tabelaSelecionada.id);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Erro ao sincronizar índices');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
   const formatarData = (data) => {
     if (!data) return '-';
     return new Date(data).toLocaleDateString('pt-BR', {
@@ -122,12 +166,32 @@ const IndicesPage = () => {
             Gerencie os índices de correção monetária
           </p>
         </div>
-        {tabelaSelecionada && (
-          <Button variant="primary" onClick={() => setShowImportModal(true)}>
-            <FaUpload className="me-2" />
-            Importar CSV
+        <div className="d-flex gap-2">
+          <Button
+            variant="success"
+            onClick={handleSincronizarTodos}
+            disabled={sincronizando}
+          >
+            <FaSync className={`me-2 ${sincronizando ? 'fa-spin' : ''}`} />
+            {sincronizando ? 'Sincronizando...' : 'Sincronizar Todos (BCB)'}
           </Button>
-        )}
+          {tabelaSelecionada && (
+            <>
+              <Button
+                variant="outline-success"
+                onClick={handleSincronizar}
+                disabled={sincronizando}
+              >
+                <FaSync className="me-2" />
+                Sincronizar {tabelaSelecionada.nome}
+              </Button>
+              <Button variant="primary" onClick={() => setShowImportModal(true)}>
+                <FaUpload className="me-2" />
+                Importar CSV
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <Row>
@@ -187,13 +251,23 @@ const IndicesPage = () => {
               ) : valores.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <p className="mb-3">Nenhum valor cadastrado</p>
-                  <Button
-                    variant="outline-primary"
-                    onClick={() => setShowImportModal(true)}
-                  >
-                    <FaUpload className="me-2" />
-                    Importar valores
-                  </Button>
+                  <div className="d-flex justify-content-center gap-2">
+                    <Button
+                      variant="success"
+                      onClick={handleSincronizar}
+                      disabled={sincronizando}
+                    >
+                      <FaSync className="me-2" />
+                      {sincronizando ? 'Sincronizando...' : 'Buscar do Banco Central'}
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => setShowImportModal(true)}
+                    >
+                      <FaUpload className="me-2" />
+                      Importar CSV
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>

@@ -3,9 +3,11 @@ package com.calculosjuridicos.controller;
 import com.calculosjuridicos.entity.TabelaIndice;
 import com.calculosjuridicos.entity.ValorIndice;
 import com.calculosjuridicos.service.IndiceService;
+import com.calculosjuridicos.service.IndicesSyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/indices")
@@ -22,6 +25,7 @@ import java.util.List;
 public class IndiceController {
 
     private final IndiceService indiceService;
+    private final IndicesSyncService syncService;
 
     @GetMapping
     @Operation(summary = "Listar tabelas de índices disponíveis")
@@ -64,6 +68,53 @@ public class IndiceController {
             result.registrosAtualizados(),
             result.erros()
         ));
+    }
+
+    @PostMapping("/{id}/sync")
+    @Operation(summary = "Sincronizar índice com a API do Banco Central (BCB SGS)")
+    public ResponseEntity<SyncResponse> sincronizar(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicial,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFinal) {
+
+        if (dataFinal == null) {
+            dataFinal = LocalDate.now();
+        }
+        if (dataInicial == null) {
+            dataInicial = dataFinal.minusYears(5);
+        }
+
+        IndicesSyncService.SyncResult result = syncService.sincronizar(id, dataInicial, dataFinal);
+        return ResponseEntity.ok(new SyncResponse(
+            result.registrosImportados(),
+            result.registrosAtualizados(),
+            result.erros()
+        ));
+    }
+
+    @PostMapping("/sync/todos")
+    @Operation(summary = "Sincronizar todos os índices com o BCB SGS")
+    public ResponseEntity<Map<String, SyncResponse>> sincronizarTodos(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicial,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFinal) {
+
+        if (dataFinal == null) {
+            dataFinal = LocalDate.now();
+        }
+        if (dataInicial == null) {
+            dataInicial = dataFinal.minusYears(5);
+        }
+
+        Map<String, IndicesSyncService.SyncResult> resultados = syncService.sincronizarTodos(dataInicial, dataFinal);
+        Map<String, SyncResponse> response = new java.util.LinkedHashMap<>();
+        resultados.forEach((nome, result) ->
+            response.put(nome, new SyncResponse(
+                result.registrosImportados(),
+                result.registrosAtualizados(),
+                result.erros()
+            ))
+        );
+        return ResponseEntity.ok(response);
     }
 
     private TabelaIndiceResponse toTabelaResponse(TabelaIndice tabela) {
@@ -112,6 +163,15 @@ public class IndiceController {
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor
     public static class ImportResponse {
+        private int registrosImportados;
+        private int registrosAtualizados;
+        private List<String> erros;
+    }
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class SyncResponse {
         private int registrosImportados;
         private int registrosAtualizados;
         private List<String> erros;
