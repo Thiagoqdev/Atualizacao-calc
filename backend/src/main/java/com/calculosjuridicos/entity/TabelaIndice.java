@@ -29,7 +29,7 @@ public class TabelaIndice {
     private String codigoOficial;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "fonte_api", length = 20)
+    @Column(name = "fonte_api", columnDefinition = "varchar(20)")
     private FonteApi fonteApi;
 
     @OneToMany(mappedBy = "tabelaIndice", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -36,7 +36,7 @@ public class ValorIndice {
     private BigDecimal valor;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(columnDefinition = "varchar(20)")
     @Builder.Default
     private FonteValor fonte = FonteValor.MANUAL;
 

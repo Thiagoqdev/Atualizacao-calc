@@ -46,7 +46,7 @@ public class Calculo {
     private TabelaIndice tabelaIndice;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_juros")
+    @Column(name = "tipo_juros", columnDefinition = "enum('SIMPLES','COMPOSTO')")
     @Builder.Default
     private TipoJuros tipoJuros = TipoJuros.SIMPLES;
 
@@ -54,7 +54,7 @@ public class Calculo {
     private BigDecimal taxaJuros;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "periodicidade_juros")
+    @Column(name = "periodicidade_juros", columnDefinition = "enum('DIARIO','MENSAL','ANUAL')")
     @Builder.Default
     private PeriodicidadeJuros periodicidadeJuros = PeriodicidadeJuros.MENSAL;
 
@@ -71,7 +71,7 @@ public class Calculo {
     private Boolean jurosSobreCorrigido = true;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "enum('RASCUNHO','CALCULADO','FINALIZADO')")
     @Builder.Default
     private StatusCalculo status = StatusCalculo.RASCUNHO;
 

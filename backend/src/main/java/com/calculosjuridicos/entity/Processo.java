@@ -33,7 +33,7 @@ public class Processo {
     private String varaTribunal;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_acao", nullable = false)
+    @Column(name = "tipo_acao", nullable = false, columnDefinition = "enum('TRABALHISTA','CIVEL','PREVIDENCIARIA','TRIBUTARIA')")
     private TipoAcao tipoAcao;
 
     @ManyToOne(fetch = FetchType.LAZY)

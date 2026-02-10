@@ -9,14 +9,24 @@ import com.calculosjuridicos.repository.CalculoRepository;
 import com.calculosjuridicos.repository.ResultadoCalculoRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lowagie.text.*;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,26 +64,19 @@ public class RelatorioService {
             PdfWriter.getInstance(document, baos);
             document.open();
 
-            // Cabeçalho
             adicionarCabecalhoPdf(document, calculo);
 
-            // Dados do processo
             if (calculo.getProcesso() != null) {
                 adicionarDadosProcessoPdf(document, calculo);
             }
 
-            // Parâmetros do cálculo
             adicionarParametrosPdf(document, calculo);
-
-            // Resultado
             adicionarResultadoPdf(document, resultado);
 
-            // Detalhamento (se nível completo)
             if ("completo".equals(nivel) && resultado.getDetalhamentoJson() != null) {
                 adicionarDetalhamentoPdf(document, resultado);
             }
 
-            // Rodapé
             adicionarRodapePdf(document);
 
             document.close();
@@ -95,15 +98,12 @@ public class RelatorioService {
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-            // Aba de Resumo
             Sheet resumoSheet = workbook.createSheet("Resumo");
             criarAbaResumo(workbook, resumoSheet, calculo, resultado);
 
-            // Aba de Parâmetros
             Sheet parametrosSheet = workbook.createSheet("Parâmetros");
             criarAbaParametros(workbook, parametrosSheet, calculo);
 
-            // Aba de Detalhamento (se nível completo)
             if ("completo".equals(nivel) && resultado.getDetalhamentoJson() != null) {
                 Sheet detalhamentoSheet = workbook.createSheet("Evolução Mensal");
                 criarAbaDetalhamento(workbook, detalhamentoSheet, resultado);
@@ -200,7 +200,6 @@ public class RelatorioService {
 
         document.add(table);
 
-        // Total destacado
         com.lowagie.text.Font totalFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 14, com.lowagie.text.Font.BOLD, new Color(39, 174, 96));
         Paragraph total = new Paragraph("VALOR TOTAL: " + CURRENCY_FORMAT.format(resultado.getValorTotal()), totalFont);
         total.setAlignment(Element.ALIGN_RIGHT);
@@ -225,14 +224,12 @@ public class RelatorioService {
             table.setWidthPercentage(100);
             table.setWidths(new float[]{1, 1.2f, 1.2f, 1.2f, 1.2f});
 
-            // Cabeçalho
             addHeaderCell(table, "Competência");
             addHeaderCell(table, "Índice");
             addHeaderCell(table, "Fator");
             addHeaderCell(table, "Corrigido");
             addHeaderCell(table, "Subtotal");
 
-            // Dados
             for (ResultadoCalculoResponse.DetalhamentoMensalResponse det : detalhamento) {
                 addCell(table, det.getCompetencia());
                 addCell(table, formatDecimal(det.getIndice()));
@@ -299,15 +296,13 @@ public class RelatorioService {
 
         int rowNum = 0;
 
-        // Título
-        Row titleRow = sheet.createRow(rowNum++);
-        Cell titleCell = titleRow.createCell(0);
+        org.apache.poi.ss.usermodel.Row titleRow = sheet.createRow(rowNum++);
+        org.apache.poi.ss.usermodel.Cell titleCell = titleRow.createCell(0);
         titleCell.setCellValue("RELATÓRIO DE CÁLCULO - " + calculo.getTitulo());
         titleCell.setCellStyle(headerStyle);
 
-        rowNum++; // Linha em branco
+        rowNum++;
 
-        // Resultado
         createResultRow(sheet, rowNum++, "Valor Principal", calculo.getValorPrincipal(), currencyStyle);
         createResultRow(sheet, rowNum++, "Valor Corrigido", resultado.getValorCorrigido(), currencyStyle);
         createResultRow(sheet, rowNum++, "Juros", resultado.getValorJuros(), currencyStyle);
@@ -315,9 +310,9 @@ public class RelatorioService {
         createResultRow(sheet, rowNum++, "Honorários", resultado.getValorHonorarios(), currencyStyle);
 
         rowNum++;
-        Row totalRow = sheet.createRow(rowNum);
+        org.apache.poi.ss.usermodel.Row totalRow = sheet.createRow(rowNum);
         totalRow.createCell(0).setCellValue("VALOR TOTAL");
-        Cell totalValueCell = totalRow.createCell(1);
+        org.apache.poi.ss.usermodel.Cell totalValueCell = totalRow.createCell(1);
         totalValueCell.setCellValue(resultado.getValorTotal().doubleValue());
         totalValueCell.setCellStyle(currencyStyle);
 
@@ -353,32 +348,30 @@ public class RelatorioService {
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle currencyStyle = createCurrencyStyle(workbook);
 
-            // Cabeçalho
-            Row headerRow = sheet.createRow(0);
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
             String[] headers = {"Competência", "Índice", "Fator Acumulado", "Valor Corrigido", "Juros", "Subtotal"};
             for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(headerStyle);
             }
 
-            // Dados
             int rowNum = 1;
             for (ResultadoCalculoResponse.DetalhamentoMensalResponse det : detalhamento) {
-                Row row = sheet.createRow(rowNum++);
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(det.getCompetencia());
                 row.createCell(1).setCellValue(det.getIndice() != null ? det.getIndice().doubleValue() : 0);
                 row.createCell(2).setCellValue(det.getFatorAcumulado() != null ? det.getFatorAcumulado().doubleValue() : 0);
 
-                Cell corrigidoCell = row.createCell(3);
+                org.apache.poi.ss.usermodel.Cell corrigidoCell = row.createCell(3);
                 corrigidoCell.setCellValue(det.getValorCorrigidoParcial() != null ? det.getValorCorrigidoParcial().doubleValue() : 0);
                 corrigidoCell.setCellStyle(currencyStyle);
 
-                Cell jurosCell = row.createCell(4);
+                org.apache.poi.ss.usermodel.Cell jurosCell = row.createCell(4);
                 jurosCell.setCellValue(det.getJurosParcial() != null ? det.getJurosParcial().doubleValue() : 0);
                 jurosCell.setCellStyle(currencyStyle);
 
-                Cell subtotalCell = row.createCell(5);
+                org.apache.poi.ss.usermodel.Cell subtotalCell = row.createCell(5);
                 subtotalCell.setCellValue(det.getSubtotalParcial() != null ? det.getSubtotalParcial().doubleValue() : 0);
                 subtotalCell.setCellStyle(currencyStyle);
             }
@@ -393,7 +386,7 @@ public class RelatorioService {
 
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
+        org.apache.poi.ss.usermodel.Font font = workbook.createFont();
         font.setBold(true);
         style.setFont(font);
         style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
@@ -409,15 +402,15 @@ public class RelatorioService {
     }
 
     private void createResultRow(Sheet sheet, int rowNum, String label, BigDecimal value, CellStyle currencyStyle) {
-        Row row = sheet.createRow(rowNum);
+        org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum);
         row.createCell(0).setCellValue(label);
-        Cell valueCell = row.createCell(1);
+        org.apache.poi.ss.usermodel.Cell valueCell = row.createCell(1);
         valueCell.setCellValue(value.doubleValue());
         valueCell.setCellStyle(currencyStyle);
     }
 
     private void createParamRow(Sheet sheet, int rowNum, String label, String value) {
-        Row row = sheet.createRow(rowNum);
+        org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum);
         row.createCell(0).setCellValue(label);
         row.createCell(1).setCellValue(value);
     }
