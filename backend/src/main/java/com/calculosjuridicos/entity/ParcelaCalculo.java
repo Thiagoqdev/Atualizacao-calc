@@ -32,6 +32,10 @@ public class ParcelaCalculo {
     @Column(name = "data_vencimento", nullable = false)
     private LocalDate dataVencimento;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tabela_indice_id")
+    private TabelaIndice tabelaIndice;
+
     public ParcelaCalculo(BigDecimal valorOriginal, LocalDate dataVencimento) {
         this.valorOriginal = valorOriginal;
         this.dataVencimento = dataVencimento;

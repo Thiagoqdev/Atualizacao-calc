@@ -299,6 +299,7 @@ function CalculoResultadoPage() {
                         <th>Descrição</th>
                         <th>Valor Original</th>
                         <th>Data Vencimento</th>
+                        <th>Índice</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -308,13 +309,14 @@ function CalculoResultadoPage() {
                           <td>{parcela.descricao || '-'}</td>
                           <td>{formatarMoeda(parcela.valorOriginal)}</td>
                           <td>{formatarData(parcela.dataVencimento)}</td>
+                          <td>{parcela.tabelaIndiceNome || 'Padrão do cálculo'}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="table-secondary">
                         <td colSpan={2}><strong>Total</strong></td>
-                        <td colSpan={2}>
+                        <td colSpan={3}>
                           <strong>
                             {formatarMoeda(
                               calculo.parcelas.reduce((sum, p) => sum + (p.valorOriginal || 0), 0)

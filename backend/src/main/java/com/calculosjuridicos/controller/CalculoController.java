@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -88,6 +90,20 @@ public class CalculoController {
     }
 
     private CalculoResponse toResponse(Calculo calculo) {
+        List<CalculoResponse.ParcelaResponse> parcelas = null;
+        if (calculo.getParcelas() != null && !calculo.getParcelas().isEmpty()) {
+            parcelas = calculo.getParcelas().stream()
+                .map(p -> CalculoResponse.ParcelaResponse.builder()
+                    .id(p.getId())
+                    .descricao(p.getDescricao())
+                    .valorOriginal(p.getValorOriginal())
+                    .dataVencimento(p.getDataVencimento())
+                    .tabelaIndiceId(p.getTabelaIndice() != null ? p.getTabelaIndice().getId() : null)
+                    .tabelaIndiceNome(p.getTabelaIndice() != null ? p.getTabelaIndice().getNome() : null)
+                    .build())
+                .toList();
+        }
+
         return CalculoResponse.builder()
             .id(calculo.getId())
             .processoId(calculo.getProcesso() != null ? calculo.getProcesso().getId() : null)
@@ -106,6 +122,7 @@ public class CalculoController {
             .status(calculo.getStatus())
             .dataCriacao(calculo.getDataCriacao())
             .dataAtualizacao(calculo.getDataAtualizacao())
+            .parcelas(parcelas)
             .build();
     }
 
@@ -131,5 +148,19 @@ public class CalculoController {
         private com.calculosjuridicos.entity.StatusCalculo status;
         private java.time.LocalDateTime dataCriacao;
         private java.time.LocalDateTime dataAtualizacao;
+        private List<ParcelaResponse> parcelas;
+
+        @lombok.Data
+        @lombok.Builder
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        public static class ParcelaResponse {
+            private Long id;
+            private String descricao;
+            private java.math.BigDecimal valorOriginal;
+            private java.time.LocalDate dataVencimento;
+            private Long tabelaIndiceId;
+            private String tabelaIndiceNome;
+        }
     }
 }

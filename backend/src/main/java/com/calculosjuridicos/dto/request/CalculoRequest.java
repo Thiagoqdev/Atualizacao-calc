@@ -73,5 +73,7 @@ public class CalculoRequest {
 
         @NotNull(message = "Data de vencimento da parcela é obrigatória")
         private LocalDate dataVencimento;
+
+        private Long tabelaIndiceId;
     }
 }

@@ -41,6 +41,7 @@ public class ResultadoCalculoResponse {
         private BigDecimal valorJuros;
         private BigDecimal subtotal;
         private int mesesJuros;
+        private String indiceNome;
     }
 
     @Data

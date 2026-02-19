@@ -23,7 +23,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -88,6 +90,14 @@ public class CalculoService {
                     .valorOriginal(parcelaReq.getValorOriginal())
                     .dataVencimento(parcelaReq.getDataVencimento())
                     .build();
+
+                // Indice especifico da parcela (override do global)
+                if (parcelaReq.getTabelaIndiceId() != null) {
+                    TabelaIndice tabelaParcela = tabelaIndiceRepository.findById(parcelaReq.getTabelaIndiceId())
+                        .orElseThrow(() -> new ResourceNotFoundException("TabelaIndice", "id", parcelaReq.getTabelaIndiceId()));
+                    parcela.setTabelaIndice(tabelaParcela);
+                }
+
                 calculo.addParcela(parcela);
             }
         }
@@ -189,23 +199,41 @@ public class CalculoService {
                 .build());
         }
 
+        // Cache de indices para evitar N+1 queries
+        Map<Long, TabelaIndice> indiceCache = new HashMap<>();
+
         // Calcular cada parcela
         for (CalculoRequest.ParcelaRequest parcela : parcelas) {
             BigDecimal valorCorrigido;
             BigDecimal fatorCorrecao = BigDecimal.ONE;
 
+            // Determinar indice efetivo: per-parcela override ou global
+            Long effectiveIndiceId = parcela.getTabelaIndiceId() != null
+                ? parcela.getTabelaIndiceId()
+                : request.getTabelaIndiceId();
+
+            // Resolver nome do indice para exibicao
+            String indiceNome = null;
+            if (effectiveIndiceId != null) {
+                TabelaIndice tabela = indiceCache.computeIfAbsent(effectiveIndiceId,
+                    id -> tabelaIndiceRepository.findById(id).orElse(null));
+                if (tabela != null) {
+                    indiceNome = tabela.getNome();
+                }
+            }
+
             // Correção monetária
-            if (request.getTabelaIndiceId() != null) {
+            if (effectiveIndiceId != null) {
                 valorCorrigido = correcaoService.calcular(
                     parcela.getValorOriginal(),
                     parcela.getDataVencimento(),
                     request.getDataFinal(),
-                    request.getTabelaIndiceId()
+                    effectiveIndiceId
                 );
                 fatorCorrecao = correcaoService.calcularFatorCorrecao(
                     parcela.getDataVencimento(),
                     request.getDataFinal(),
-                    request.getTabelaIndiceId()
+                    effectiveIndiceId
                 );
             } else {
                 valorCorrigido = parcela.getValorOriginal();
@@ -242,6 +270,7 @@ public class CalculoService {
                 .valorJuros(valorJuros)
                 .subtotal(valorCorrigido.add(valorJuros))
                 .mesesJuros(mesesJuros)
+                .indiceNome(indiceNome)
                 .build());
         }
 
@@ -363,6 +392,7 @@ public class CalculoService {
                     .descricao(p.getDescricao())
                     .valorOriginal(p.getValorOriginal())
                     .dataVencimento(p.getDataVencimento())
+                    .tabelaIndiceId(p.getTabelaIndice() != null ? p.getTabelaIndice().getId() : null)
                     .build())
                 .toList();
         }

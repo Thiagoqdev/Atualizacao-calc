@@ -8,6 +8,7 @@ import {
   Form,
   Table,
   Alert,
+  Modal,
 } from 'react-bootstrap';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'react-toastify';
@@ -17,6 +18,7 @@ import {
   FaPlus,
   FaTrash,
   FaArrowLeft,
+  FaLayerGroup,
 } from 'react-icons/fa';
 import Layout from '../components/common/Layout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -46,6 +48,15 @@ const CalculoFormPage = () => {
   const [indices, setIndices] = useState([]);
   const [processo, setProcesso] = useState(null);
   const [resultado, setResultado] = useState(null);
+  const [showModalVarias, setShowModalVarias] = useState(false);
+  const [modalVarias, setModalVarias] = useState({
+    quantidade: 1,
+    valorParcela: '',
+    descricaoBase: 'Parcela',
+    tipoVencimento: 'subsequentes',
+    dataInicialParcelas: '',
+    tabelaIndiceId: '',
+  });
 
   const {
     register,
@@ -155,6 +166,7 @@ const CalculoFormPage = () => {
         descricao: p.descricao,
         valorOriginal: parseFloat(p.valorOriginal),
         dataVencimento: p.dataVencimento,
+        tabelaIndiceId: p.tabelaIndiceId ? parseInt(p.tabelaIndiceId) : null,
       }));
     }
 
@@ -170,7 +182,58 @@ const CalculoFormPage = () => {
   };
 
   const adicionarParcela = () => {
-    append({ descricao: '', valorOriginal: '', dataVencimento: '' });
+    append({ descricao: '', valorOriginal: '', dataVencimento: '', tabelaIndiceId: '' });
+  };
+
+  const adicionarVariasParcelas = () => {
+    const { quantidade, valorParcela, descricaoBase, tipoVencimento, dataInicialParcelas, tabelaIndiceId } = modalVarias;
+
+    if (!quantidade || quantidade < 1 || !valorParcela) {
+      toast.warning('Preencha a quantidade e o valor das parcelas');
+      return;
+    }
+
+    const dataInicialCalculo = watch('dataInicial');
+    let dataBase;
+    if (tipoVencimento === 'subsequentes') {
+      if (!dataInicialCalculo) {
+        toast.warning('Defina a data inicial do cálculo primeiro');
+        return;
+      }
+      dataBase = new Date(dataInicialCalculo + 'T00:00:00');
+    } else {
+      if (!dataInicialParcelas) {
+        toast.warning('Informe a data inicial das parcelas');
+        return;
+      }
+      dataBase = new Date(dataInicialParcelas + 'T00:00:00');
+    }
+
+    const novasParcelas = [];
+    for (let i = 0; i < parseInt(quantidade); i++) {
+      const dataVencimento = new Date(dataBase);
+      dataVencimento.setMonth(dataVencimento.getMonth() + i);
+      const dataFormatada = dataVencimento.toISOString().split('T')[0];
+
+      novasParcelas.push({
+        descricao: `${descricaoBase} ${i + 1}`,
+        valorOriginal: valorParcela,
+        dataVencimento: dataFormatada,
+        tabelaIndiceId: tabelaIndiceId || '',
+      });
+    }
+
+    append(novasParcelas);
+    setShowModalVarias(false);
+    setModalVarias({
+      quantidade: 1,
+      valorParcela: '',
+      descricaoBase: 'Parcela',
+      tipoVencimento: 'subsequentes',
+      dataInicialParcelas: '',
+      tabelaIndiceId: '',
+    });
+    toast.success(`${quantidade} parcela(s) adicionada(s)!`);
   };
 
   if (loading) {
@@ -373,9 +436,14 @@ const CalculoFormPage = () => {
             <Card className="mb-4">
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <strong>Parcelas (opcional)</strong>
-                <Button variant="outline-primary" size="sm" onClick={adicionarParcela}>
-                  <FaPlus className="me-1" /> Adicionar Parcela
-                </Button>
+                <div className="d-flex gap-2">
+                  <Button variant="outline-primary" size="sm" onClick={adicionarParcela}>
+                    <FaPlus className="me-1" /> Adicionar Parcela
+                  </Button>
+                  <Button variant="outline-secondary" size="sm" onClick={() => setShowModalVarias(true)}>
+                    <FaLayerGroup className="me-1" /> Adicionar Várias
+                  </Button>
+                </div>
               </Card.Header>
               <Card.Body>
                 {fields.length === 0 ? (
@@ -384,12 +452,14 @@ const CalculoFormPage = () => {
                     principal.
                   </Alert>
                 ) : (
+                  <div style={{ overflowX: 'auto' }}>
                   <Table size="sm">
                     <thead>
                       <tr>
                         <th>Descrição</th>
                         <th>Valor</th>
                         <th>Vencimento</th>
+                        <th>Índice</th>
                         <th width="50"></th>
                       </tr>
                     </thead>
@@ -425,6 +495,19 @@ const CalculoFormPage = () => {
                             />
                           </td>
                           <td>
+                            <Form.Select
+                              size="sm"
+                              {...register(`parcelas.${index}.tabelaIndiceId`)}
+                            >
+                              <option value="">Padrão do cálculo</option>
+                              {indices.map((indice) => (
+                                <option key={indice.id} value={indice.id}>
+                                  {indice.nome}
+                                </option>
+                              ))}
+                            </Form.Select>
+                          </td>
+                          <td>
                             <Button
                               variant="outline-danger"
                               size="sm"
@@ -437,6 +520,7 @@ const CalculoFormPage = () => {
                       ))}
                     </tbody>
                   </Table>
+                  </div>
                 )}
               </Card.Body>
             </Card>
@@ -545,6 +629,7 @@ const CalculoFormPage = () => {
                         <thead>
                           <tr>
                             <th>Descrição</th>
+                            <th>Índice</th>
                             <th className="text-end">Corrigido</th>
                             <th className="text-end">Juros</th>
                             <th className="text-end">Subtotal</th>
@@ -554,6 +639,7 @@ const CalculoFormPage = () => {
                           {resultado.parcelas.map((parcela, idx) => (
                             <tr key={idx}>
                               <td>{parcela.descricao || `Parcela ${idx + 1}`}</td>
+                              <td><small>{parcela.indiceNome || 'Padrão'}</small></td>
                               <td className="text-end">
                                 {formatarMoeda(parcela.valorCorrigido)}
                               </td>
@@ -575,6 +661,98 @@ const CalculoFormPage = () => {
           </Col>
         </Row>
       </Form>
+
+      {/* Modal Adicionar Várias Parcelas */}
+      <Modal show={showModalVarias} onHide={() => setShowModalVarias(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Adicionar Várias Parcelas</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Quantidade de parcelas</Form.Label>
+            <Form.Control
+              type="number"
+              min="1"
+              max="120"
+              value={modalVarias.quantidade}
+              onChange={(e) => setModalVarias({ ...modalVarias, quantidade: e.target.value })}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Valor de cada parcela (R$)</Form.Label>
+            <Form.Control
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={modalVarias.valorParcela}
+              onChange={(e) => setModalVarias({ ...modalVarias, valorParcela: e.target.value })}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Descrição base</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ex: Parcela"
+              value={modalVarias.descricaoBase}
+              onChange={(e) => setModalVarias({ ...modalVarias, descricaoBase: e.target.value })}
+            />
+            <Form.Text className="text-muted">
+              Será numerada automaticamente: &quot;Parcela 1&quot;, &quot;Parcela 2&quot;, etc.
+            </Form.Text>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Vencimentos</Form.Label>
+            <Form.Check
+              type="radio"
+              label="Subsequentes à data inicial do cálculo"
+              name="tipoVencimento"
+              checked={modalVarias.tipoVencimento === 'subsequentes'}
+              onChange={() => setModalVarias({ ...modalVarias, tipoVencimento: 'subsequentes' })}
+            />
+            <Form.Check
+              type="radio"
+              label="A partir de uma data específica"
+              name="tipoVencimento"
+              checked={modalVarias.tipoVencimento === 'dataEspecifica'}
+              onChange={() => setModalVarias({ ...modalVarias, tipoVencimento: 'dataEspecifica' })}
+            />
+            {modalVarias.tipoVencimento === 'dataEspecifica' && (
+              <Form.Control
+                type="date"
+                className="mt-2"
+                value={modalVarias.dataInicialParcelas}
+                onChange={(e) => setModalVarias({ ...modalVarias, dataInicialParcelas: e.target.value })}
+              />
+            )}
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Índice de correção</Form.Label>
+            <Form.Select
+              value={modalVarias.tabelaIndiceId}
+              onChange={(e) => setModalVarias({ ...modalVarias, tabelaIndiceId: e.target.value })}
+            >
+              <option value="">Usar índice do cálculo</option>
+              {indices.map((indice) => (
+                <option key={indice.id} value={indice.id}>
+                  {indice.nome} - {indice.descricao}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModalVarias(false)}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={adicionarVariasParcelas}>
+            <FaPlus className="me-1" /> Adicionar {modalVarias.quantidade || 0} Parcela(s)
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 };
