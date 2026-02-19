@@ -2,6 +2,7 @@ services:
   # Banco de dados MySQL
   mysql:
     image: mysql:8.0
+    platform: linux/amd64
     container_name: calcjuridico-mysql
     restart: unless-stopped
     environment:
@@ -26,6 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    platform: linux/amd64
     container_name: calcjuridico-backend
     restart: unless-stopped
     ports:
@@ -51,6 +53,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    platform: linux/amd64
     container_name: calcjuridico-frontend
     restart: unless-stopped
     ports:
