@@ -42,6 +42,14 @@ export const calculoApi = {
     });
     return response.data;
   },
+
+  previewRelatorio: async (dados, formato = 'pdf') => {
+    const response = await apiClient.post('/calculos/preview/relatorio', dados, {
+      params: { formato },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 
 export default calculoApi;

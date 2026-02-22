@@ -92,6 +92,21 @@ public class IndiceController {
         ));
     }
 
+    @PostMapping("/sync/historico")
+    @Operation(summary = "Sincronizar dados históricos completos desde 2000")
+    public ResponseEntity<Map<String, SyncResponse>> sincronizarHistorico() {
+        Map<String, IndicesSyncService.SyncResult> resultados = syncService.sincronizarHistorico();
+        Map<String, SyncResponse> response = new java.util.LinkedHashMap<>();
+        resultados.forEach((nome, result) ->
+            response.put(nome, new SyncResponse(
+                result.registrosImportados(),
+                result.registrosAtualizados(),
+                result.erros()
+            ))
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/sync/todos")
     @Operation(summary = "Sincronizar todos os índices com o BCB SGS")
     public ResponseEntity<Map<String, SyncResponse>> sincronizarTodos(

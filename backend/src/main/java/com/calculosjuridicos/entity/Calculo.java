@@ -71,6 +71,22 @@ public class Calculo {
     private Boolean jurosSobreCorrigido = true;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_calculo", nullable = false, columnDefinition = "enum('PADRAO','FAZENDA_PUBLICA')")
+    @Builder.Default
+    private TipoCalculo tipoCalculo = TipoCalculo.PADRAO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "natureza_condenacao", columnDefinition = "enum('ADMINISTRATIVA','SERVIDOR_PUBLICO','TRIBUTARIA')")
+    private NaturezaCondenacao naturezaCondenacao;
+
+    @Column(name = "rpv_precatorio")
+    @Builder.Default
+    private Boolean rpvPrecatorio = false;
+
+    @Column(name = "data_rpv_precatorio")
+    private LocalDate dataRpvPrecatorio;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "enum('RASCUNHO','CALCULADO','FINALIZADO')")
     @Builder.Default
     private StatusCalculo status = StatusCalculo.RASCUNHO;

@@ -174,6 +174,316 @@ body {
   font-weight: 600;
 }
 
+/* =============================================
+   BOTÕES DE DOWNLOAD MODERNOS
+   ============================================= */
+
+.btn-download-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-download:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+
+.btn-download:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-download:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-download-pdf {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.btn-download-pdf:hover {
+  background: linear-gradient(135deg, #c82333, #b21f2d);
+}
+
+.btn-download-word {
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+}
+
+.btn-download-word:hover {
+  background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+}
+
+.btn-download-excel {
+  background: linear-gradient(135deg, #198754, #157347);
+}
+
+.btn-download-excel:hover {
+  background: linear-gradient(135deg, #157347, #146c43);
+}
+
+.btn-download svg {
+  font-size: 1.1rem;
+}
+
+/* =============================================
+   BADGES DE ÍNDICE (EVOLUÇÃO MENSAL)
+   ============================================= */
+
+.badge-indice {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-indice-ipca-e {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.badge-indice-selic {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.badge-indice-ipca {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.badge-indice-inpc {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
+.badge-indice-igpm {
+  background-color: #fce4ec;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.badge-indice-tr {
+  background-color: #f5f5f5;
+  color: #616161;
+  border: 1px solid #bdbdbd;
+}
+
+.badge-indice-default {
+  background-color: #f0f4f8;
+  color: #455a64;
+  border: 1px solid #b0bec5;
+}
+
+/* Indicador de mudança de índice na tabela */
+.indice-mudou {
+  position: relative;
+}
+
+.indice-mudou::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--warning-color);
+  border-radius: 2px;
+}
+
+/* =============================================
+   TIPO DE CÁLCULO - CARDS DE SELEÇÃO
+   ============================================= */
+
+.tipo-calculo-card {
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fff;
+}
+
+.tipo-calculo-card:hover {
+  border-color: var(--secondary-color);
+  background: rgba(52, 152, 219, 0.03);
+}
+
+.tipo-calculo-card.active {
+  border-color: var(--secondary-color);
+  background: rgba(52, 152, 219, 0.08);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+.tipo-calculo-card .tipo-titulo {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.tipo-calculo-card .tipo-descricao {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* =============================================
+   SPA - TRANSIÇÃO DE VIEW (FORM ↔ RESULTADO)
+   ============================================= */
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes viewFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+.view-transition-enter {
+  animation: viewFadeIn 0.4s ease-out;
+}
+
+.view-transition-exit {
+  animation: viewFadeOut 0.3s ease-in;
+}
+
+/* Skeleton shimmer para loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  height: 20px;
+  margin: 4px 0;
+}
+
+/* =============================================
+   TABELA DE EVOLUÇÃO MODERNIZADA
+   ============================================= */
+
+.evolucao-table thead th {
+  background-color: var(--primary-color) !important;
+  color: #fff !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 10px 8px;
+  border: none;
+  white-space: nowrap;
+}
+
+.evolucao-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.evolucao-table tbody tr:hover {
+  background-color: rgba(52, 152, 219, 0.08) !important;
+}
+
+.evolucao-table tbody td {
+  font-size: 0.82rem;
+  padding: 8px;
+  vertical-align: middle;
+  border-color: #eee;
+}
+
+.evolucao-table tfoot td {
+  font-weight: 700;
+  background-color: #ecf0f1;
+  border-top: 2px solid var(--primary-color);
+}
+
+.evolucao-table .total-geral td {
+  background-color: #d6ead8;
+  color: var(--success-color);
+  font-size: 0.9rem;
+}
+
+/* =============================================
+   TOOLTIP LEGISLAÇÃO
+   ============================================= */
+
+.tooltip-legislacao {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.nota-legislativa {
+  background: linear-gradient(135deg, #f8f9fa 0%, #eef1f5 100%);
+  border-left: 4px solid var(--primary-color);
+  padding: 14px 18px;
+  margin-top: 16px;
+  border-radius: 0 10px 10px 0;
+  font-size: 0.82rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+.nota-legislativa strong {
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.nota-legislativa strong:first-child {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
 @media (max-width: 768px) {
   .sidebar {
     min-height: auto;
@@ -185,5 +495,27 @@ body {
 
   .resultado-calculo .valor-total {
     font-size: 1.75rem;
+  }
+
+  .btn-download-group {
+    flex-direction: column;
+  }
+
+  .btn-download {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tipo-calculo-card {
+    padding: 12px;
+  }
+
+  .evolucao-table {
+    font-size: 0.75rem;
+  }
+
+  .evolucao-table thead th,
+  .evolucao-table tbody td {
+    padding: 6px 4px;
   }
 }

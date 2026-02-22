@@ -3,6 +3,7 @@ package com.calculosjuridicos.controller;
 import com.calculosjuridicos.dto.request.CalculoRequest;
 import com.calculosjuridicos.dto.response.ResultadoCalculoResponse;
 import com.calculosjuridicos.entity.Calculo;
+import com.calculosjuridicos.entity.ResultadoCalculo;
 import com.calculosjuridicos.entity.Usuario;
 import com.calculosjuridicos.service.CalculoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -104,10 +105,26 @@ public class CalculoController {
                 .toList();
         }
 
+        // Mapear resultado se existir
+        CalculoResponse.ResultadoResponse resultadoResponse = null;
+        ResultadoCalculo resultado = calculo.getResultado();
+        if (resultado != null) {
+            resultadoResponse = CalculoResponse.ResultadoResponse.builder()
+                .valorCorrigido(resultado.getValorCorrigido())
+                .valorJuros(resultado.getValorJuros())
+                .valorMulta(resultado.getValorMulta())
+                .valorHonorarios(resultado.getValorHonorarios())
+                .valorTotal(resultado.getValorTotal())
+                .dataCalculo(resultado.getDataCalculo())
+                .detalhamento(resultado.getDetalhamentoJson())
+                .build();
+        }
+
         return CalculoResponse.builder()
             .id(calculo.getId())
             .processoId(calculo.getProcesso() != null ? calculo.getProcesso().getId() : null)
             .titulo(calculo.getTitulo())
+            .tipoCalculo(calculo.getTipoCalculo())
             .valorPrincipal(calculo.getValorPrincipal())
             .dataInicial(calculo.getDataInicial())
             .dataFinal(calculo.getDataFinal())
@@ -123,6 +140,7 @@ public class CalculoController {
             .dataCriacao(calculo.getDataCriacao())
             .dataAtualizacao(calculo.getDataAtualizacao())
             .parcelas(parcelas)
+            .resultado(resultadoResponse)
             .build();
     }
 
@@ -134,6 +152,7 @@ public class CalculoController {
         private Long id;
         private Long processoId;
         private String titulo;
+        private com.calculosjuridicos.entity.TipoCalculo tipoCalculo;
         private java.math.BigDecimal valorPrincipal;
         private java.time.LocalDate dataInicial;
         private java.time.LocalDate dataFinal;
@@ -149,6 +168,7 @@ public class CalculoController {
         private java.time.LocalDateTime dataCriacao;
         private java.time.LocalDateTime dataAtualizacao;
         private List<ParcelaResponse> parcelas;
+        private ResultadoResponse resultado;
 
         @lombok.Data
         @lombok.Builder
@@ -161,6 +181,20 @@ public class CalculoController {
             private java.time.LocalDate dataVencimento;
             private Long tabelaIndiceId;
             private String tabelaIndiceNome;
+        }
+
+        @lombok.Data
+        @lombok.Builder
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        public static class ResultadoResponse {
+            private java.math.BigDecimal valorCorrigido;
+            private java.math.BigDecimal valorJuros;
+            private java.math.BigDecimal valorMulta;
+            private java.math.BigDecimal valorHonorarios;
+            private java.math.BigDecimal valorTotal;
+            private java.time.LocalDateTime dataCalculo;
+            private String detalhamento;
         }
     }
 }

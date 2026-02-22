@@ -38,6 +38,7 @@ public class CalculoService {
     private final ResultadoCalculoRepository resultadoCalculoRepository;
     private final CorrecaoMonetariaService correcaoService;
     private final JurosService jurosService;
+    private final FazendaPublicaCalculoService fazendaPublicaService;
     private final ObjectMapper objectMapper;
 
     private static final BigDecimal CEM = new BigDecimal("100");
@@ -48,6 +49,12 @@ public class CalculoService {
      */
     public ResultadoCalculoResponse preview(CalculoRequest request) {
         validarRequest(request);
+
+        // Desviar para serviço especializado se for Fazenda Pública
+        if (request.getTipoCalculo() == TipoCalculo.FAZENDA_PUBLICA) {
+            return fazendaPublicaService.calcular(request);
+        }
+
         return executarCalculo(request);
     }
 
@@ -64,6 +71,7 @@ public class CalculoService {
         Calculo calculo = Calculo.builder()
             .processo(processo)
             .titulo(request.getTitulo() != null ? request.getTitulo() : "Cálculo " + LocalDateTime.now())
+            .tipoCalculo(request.getTipoCalculo() != null ? request.getTipoCalculo() : TipoCalculo.PADRAO)
             .valorPrincipal(request.getValorPrincipal())
             .dataInicial(request.getDataInicial())
             .dataFinal(request.getDataFinal())
@@ -114,7 +122,14 @@ public class CalculoService {
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", calculoId));
 
         CalculoRequest request = toRequest(calculo);
-        ResultadoCalculoResponse response = executarCalculo(request);
+        ResultadoCalculoResponse response;
+
+        // Desviar para serviço especializado se for Fazenda Pública
+        if (request.getTipoCalculo() == TipoCalculo.FAZENDA_PUBLICA) {
+            response = fazendaPublicaService.calcular(request);
+        } else {
+            response = executarCalculo(request);
+        }
         response.setCalculoId(calculoId);
 
         // Persistir resultado
@@ -304,6 +319,19 @@ public class CalculoService {
         // Gerar detalhamento mensal
         List<DetalhamentoMensalResponse> detalhamento = gerarDetalhamentoMensal(request);
 
+        // Calcular variação total do período
+        BigDecimal variacaoTotalPeriodo = null;
+        if (!detalhamento.isEmpty()) {
+            BigDecimal primeiroIndice = detalhamento.get(0).getIndice();
+            BigDecimal ultimoIndice = detalhamento.get(detalhamento.size() - 1).getIndice();
+            if (primeiroIndice != null && ultimoIndice != null && primeiroIndice.compareTo(BigDecimal.ZERO) > 0) {
+                variacaoTotalPeriodo = ultimoIndice.subtract(primeiroIndice)
+                    .divide(primeiroIndice, 6, RoundingMode.HALF_UP)
+                    .multiply(CEM)
+                    .setScale(4, RoundingMode.HALF_UP);
+            }
+        }
+
         return ResultadoCalculoResponse.builder()
             .valorOriginal(request.getValorPrincipal())
             .valorCorrigido(totalCorrigido)
@@ -312,6 +340,7 @@ public class CalculoService {
             .valorHonorarios(valorHonorarios)
             .valorTotal(valorTotal)
             .fatorCorrecao(fatorCorrecaoGeral)
+            .variacaoTotalPeriodo(variacaoTotalPeriodo)
             .dataCalculo(LocalDateTime.now())
             .parcelas(resultadosParcelas)
             .detalhamento(detalhamento)
@@ -323,6 +352,13 @@ public class CalculoService {
 
         if (request.getTabelaIndiceId() == null) {
             return detalhamento;
+        }
+
+        // Resolver nome do índice para exibição
+        String nomeIndice = null;
+        TabelaIndice tabela = tabelaIndiceRepository.findById(request.getTabelaIndiceId()).orElse(null);
+        if (tabela != null) {
+            nomeIndice = tabela.getNome();
         }
 
         List<ValorIndice> indices = correcaoService.obterIndicesNoPeriodo(
@@ -338,10 +374,21 @@ public class CalculoService {
         BigDecimal indiceBase = indices.get(0).getValor();
         BigDecimal valorOriginal = request.getValorPrincipal();
         BigDecimal fatorAcumulado = BigDecimal.ONE;
+        BigDecimal indiceAnterior = null;
 
         for (ValorIndice indice : indices) {
             fatorAcumulado = indice.getValor().divide(indiceBase, 6, RoundingMode.HALF_UP);
             BigDecimal valorCorrigidoParcial = valorOriginal.multiply(fatorAcumulado).setScale(2, RoundingMode.HALF_UP);
+
+            // Variação percentual mês a mês
+            BigDecimal variacaoPercentual = null;
+            if (indiceAnterior != null && indiceAnterior.compareTo(BigDecimal.ZERO) > 0) {
+                variacaoPercentual = indice.getValor().subtract(indiceAnterior)
+                    .divide(indiceAnterior, 6, RoundingMode.HALF_UP)
+                    .multiply(CEM)
+                    .setScale(4, RoundingMode.HALF_UP);
+            }
+            indiceAnterior = indice.getValor();
 
             // Juros acumulados até este mês
             long meses = ChronoUnit.MONTHS.between(request.getDataInicial(), indice.getCompetencia().plusMonths(1));
@@ -359,7 +406,9 @@ public class CalculoService {
 
             detalhamento.add(DetalhamentoMensalResponse.builder()
                 .competencia(indice.getCompetencia().format(COMPETENCIA_FORMAT))
+                .nomeIndice(nomeIndice)
                 .indice(indice.getValor())
+                .variacaoPercentual(variacaoPercentual)
                 .fatorAcumulado(fatorAcumulado)
                 .valorCorrigidoParcial(valorCorrigidoParcial)
                 .jurosParcial(jurosParcial)
@@ -399,6 +448,7 @@ public class CalculoService {
 
         return CalculoRequest.builder()
             .titulo(calculo.getTitulo())
+            .tipoCalculo(calculo.getTipoCalculo())
             .valorPrincipal(calculo.getValorPrincipal())
             .dataInicial(calculo.getDataInicial())
             .dataFinal(calculo.getDataFinal())

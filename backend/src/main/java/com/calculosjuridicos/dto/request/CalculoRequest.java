@@ -1,6 +1,7 @@
 package com.calculosjuridicos.dto.request;
 
 import com.calculosjuridicos.entity.PeriodicidadeJuros;
+import com.calculosjuridicos.entity.TipoCalculo;
 import com.calculosjuridicos.entity.TipoJuros;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CalculoRequest {
+
+    @Builder.Default
+    private TipoCalculo tipoCalculo = TipoCalculo.PADRAO;
 
     @Size(max = 255, message = "Título deve ter no máximo 255 caracteres")
     private String titulo;

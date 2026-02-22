@@ -26,6 +26,8 @@ public class ResultadoCalculoResponse {
     private BigDecimal fatorCorrecao;
     private LocalDateTime dataCalculo;
 
+    private BigDecimal variacaoTotalPeriodo;
+
     private List<ResultadoParcelaResponse> parcelas;
     private List<DetalhamentoMensalResponse> detalhamento;
 
@@ -50,8 +52,10 @@ public class ResultadoCalculoResponse {
     @AllArgsConstructor
     public static class DetalhamentoMensalResponse {
         private String competencia;
+        private String nomeIndice;
         private BigDecimal indice;
         private BigDecimal fatorAcumulado;
+        private BigDecimal variacaoPercentual;
         private BigDecimal valorCorrigidoParcial;
         private BigDecimal jurosParcial;
         private BigDecimal subtotalParcial;

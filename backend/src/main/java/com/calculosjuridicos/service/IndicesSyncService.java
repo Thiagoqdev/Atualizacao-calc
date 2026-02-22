@@ -5,6 +5,7 @@ import com.calculosjuridicos.entity.ValorIndice;
 import com.calculosjuridicos.exception.BusinessException;
 import com.calculosjuridicos.repository.TabelaIndiceRepository;
 import com.calculosjuridicos.repository.ValorIndiceRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +44,12 @@ public class IndicesSyncService {
     private static final BigDecimal CEM = new BigDecimal("100");
     private static final int SCALE = 8;
 
+    /** Data mínima para sync histórico */
+    private static final LocalDate DATA_HISTORICO_INICIO = LocalDate.of(2000, 1, 1);
+
+    /** Mínimo de registros esperados por índice (≈25 anos × 12 meses = 300) */
+    private static final int MIN_REGISTROS_ESPERADOS = 200;
+
     /**
      * Mapeamento dos nomes das tabelas para as séries BCB SGS.
      * Todas as séries retornam variação mensal (%).
@@ -54,6 +61,72 @@ public class IndicesSyncService {
         "TR", "226",
         "SELIC", "4390"
     );
+
+    /**
+     * Verifica e sincroniza dados históricos ao iniciar a aplicação.
+     * Se algum índice tiver menos de 200 registros, faz sync desde 2000.
+     */
+    @PostConstruct
+    public void verificarDadosHistoricos() {
+        if (!syncEnabled) {
+            log.info("Sync desabilitado, pulando verificação de dados históricos");
+            return;
+        }
+
+        log.info("Verificando dados históricos de índices...");
+
+        try {
+            List<TabelaIndice> tabelas = tabelaIndiceRepository.findAll();
+            LocalDate dataFinal = LocalDate.now();
+
+            for (TabelaIndice tabela : tabelas) {
+                if (!SERIE_BCB_MAP.containsKey(tabela.getNome())) continue;
+
+                long count = valorIndiceRepository.countByTabelaIndiceId(tabela.getId());
+                if (count < MIN_REGISTROS_ESPERADOS) {
+                    log.info("Índice {} tem apenas {} registros (mínimo {}). Iniciando sync histórico desde {}...",
+                            tabela.getNome(), count, MIN_REGISTROS_ESPERADOS, DATA_HISTORICO_INICIO);
+                    try {
+                        // Sync em chunks de 5 anos para evitar 406 da API do BCB (séries diárias)
+                        int totalImportados = 0, totalAtualizados = 0;
+                        LocalDate chunkInicio = DATA_HISTORICO_INICIO;
+                        while (chunkInicio.isBefore(dataFinal)) {
+                            LocalDate chunkFim = chunkInicio.plusYears(5);
+                            if (chunkFim.isAfter(dataFinal)) chunkFim = dataFinal;
+                            try {
+                                SyncResult result = sincronizar(tabela.getId(), chunkInicio, chunkFim);
+                                totalImportados += result.registrosImportados();
+                                totalAtualizados += result.registrosAtualizados();
+                            } catch (Exception ex) {
+                                log.warn("Falha no chunk {}-{} para {}: {}", chunkInicio, chunkFim, tabela.getNome(), ex.getMessage());
+                            }
+                            chunkInicio = chunkFim.plusDays(1);
+                        }
+                        log.info("Sync histórico {} concluído: {} novos, {} atualizados",
+                                tabela.getNome(), totalImportados, totalAtualizados);
+                    } catch (Exception e) {
+                        log.warn("Falha ao sincronizar histórico de {}: {}. Sistema continua normalmente.",
+                                tabela.getNome(), e.getMessage());
+                    }
+                } else {
+                    log.debug("Índice {} tem {} registros - OK", tabela.getNome(), count);
+                }
+            }
+
+            log.info("Verificação de dados históricos concluída");
+        } catch (Exception e) {
+            log.warn("Erro na verificação de dados históricos: {}. Sistema continua normalmente.", e.getMessage());
+        }
+    }
+
+    /**
+     * Sincroniza dados históricos completos desde 2000 para todos os índices.
+     */
+    @Transactional
+    public Map<String, SyncResult> sincronizarHistorico() {
+        log.info("Iniciando sincronização histórica completa desde {}", DATA_HISTORICO_INICIO);
+        return sincronizarTodos(DATA_HISTORICO_INICIO, LocalDate.now());
+    }
 
     /**
      * Sincroniza os índices de uma tabela específica com o BCB SGS.
@@ -168,7 +241,6 @@ public class IndicesSyncService {
 
     /**
      * Busca dados da API BCB SGS.
-     * URL: https://api.bcb.gov.br/dados/serie/bcdata.sgs.{serie}/dados?formato=json&dataInicial=dd/MM/yyyy&dataFinal=dd/MM/yyyy
      */
     private List<BcbDataPoint> fetchBcbData(String serieId, LocalDate dataInicial, LocalDate dataFinal) {
         String url = String.format(
@@ -196,7 +268,6 @@ public class IndicesSyncService {
             return response.stream()
                 .map(item -> {
                     LocalDate data = LocalDate.parse(item.get("data"), BCB_DATE_FORMAT);
-                    // Normalizar para primeiro dia do mês (competência)
                     LocalDate competencia = data.withDayOfMonth(1);
                     BigDecimal valor = new BigDecimal(item.get("valor"));
                     return new BcbDataPoint(competencia, valor);
@@ -211,7 +282,7 @@ public class IndicesSyncService {
 
     /**
      * Obtém o último índice acumulado antes da data informada.
-     * Se não existir, inicia com base 1000 (padrão para índices acumulados).
+     * Se não existir, inicia com base 1000.
      */
     private BigDecimal obterUltimoIndiceAcumulado(Long tabelaIndiceId, LocalDate dataInicial) {
         return valorIndiceRepository
