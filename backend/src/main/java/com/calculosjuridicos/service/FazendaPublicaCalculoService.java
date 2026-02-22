@@ -52,7 +52,7 @@ public class FazendaPublicaCalculoService {
     private static final BigDecimal CEM = new BigDecimal("100");
     private static final int PRECISION = 10;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
-    private static final DateTimeFormatter COMPETENCIA_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final DateTimeFormatter COMPETENCIA_FORMAT = DateTimeFormatter.ofPattern("MM - yyyy");
 
     // Marcos legislativos
     private static final LocalDate MARCO_INPC_IPCAE = LocalDate.of(1992, 1, 1);   // Transição INPC → IPCA-E
@@ -204,30 +204,15 @@ public class FazendaPublicaCalculoService {
 
             } else if (!dataRef.isBefore(MARCO_EC_113.withDayOfMonth(1))) {
                 // ═══ EC 113/2021: SELIC unificada (correção + juros) ═══
+                // Aplica variação mensal da SELIC sobre o valor acumulado (preserva correções anteriores)
                 nomeIndice = "SELIC";
-                BigDecimal totalSelic = calcularValorSelic(valorOriginal, dataInicial, competencia, selicId);
-                if (totalSelic != null) {
-                    valorCorrigidoMes = totalSelic;
-                } else {
-                    valorCorrigidoMes = valorCorrigidoAcumulado;
-                }
+                BigDecimal[] resultadoSelic = calcularMesIndice(valorCorrigidoAcumulado,
+                        competencia, selicId, indiceAnteriorSelic);
+                valorCorrigidoMes = resultadoSelic[0];
+                variacaoPercentual = resultadoSelic[1];
+                indiceValor = resultadoSelic[2];
+                indiceAnteriorSelic = indiceValor;
                 jurosMes = BigDecimal.ZERO; // SELIC já inclui juros
-
-                // Buscar índice SELIC para variação
-                try {
-                    List<ValorIndice> selicIndices = correcaoService.obterIndicesNoPeriodo(selicId, competencia, competencia);
-                    if (!selicIndices.isEmpty()) {
-                        indiceValor = selicIndices.get(0).getValor();
-                        if (indiceAnteriorSelic != null && indiceAnteriorSelic.compareTo(BigDecimal.ZERO) > 0) {
-                            variacaoPercentual = indiceValor.subtract(indiceAnteriorSelic)
-                                    .divide(indiceAnteriorSelic, 6, ROUNDING)
-                                    .multiply(CEM).setScale(4, ROUNDING);
-                        }
-                        indiceAnteriorSelic = indiceValor;
-                    }
-                } catch (Exception e) {
-                    log.warn("Erro ao buscar índice SELIC para {}: {}", competencia, e.getMessage());
-                }
 
             } else if (!dataRef.isBefore(MARCO_INPC_IPCAE.withDayOfMonth(1))) {
                 // ═══ 01/1992 a 08/12/2021: IPCA-E para correção + juros separados ═══

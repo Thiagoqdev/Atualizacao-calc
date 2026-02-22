@@ -42,7 +42,7 @@ public class CalculoService {
     private final ObjectMapper objectMapper;
 
     private static final BigDecimal CEM = new BigDecimal("100");
-    private static final DateTimeFormatter COMPETENCIA_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final DateTimeFormatter COMPETENCIA_FORMAT = DateTimeFormatter.ofPattern("MM - yyyy");
 
     /**
      * Executa um preview do cálculo sem persistir.

@@ -95,7 +95,7 @@ const CalculoFormPage = () => {
       dataFinal: new Date().toISOString().split('T')[0],
       tabelaIndiceId: '',
       tipoJuros: 'SIMPLES',
-      taxaJuros: '1',
+      taxaJuros: '0',
       periodicidadeJuros: 'MENSAL',
       multaPercentual: '0',
       honorariosPercentual: '0',

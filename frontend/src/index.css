@@ -303,18 +303,7 @@ body {
 
 /* Indicador de mudança de índice na tabela */
 .indice-mudou {
-  position: relative;
-}
-
-.indice-mudou::before {
-  content: '';
-  position: absolute;
-  left: -4px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--warning-color);
-  border-radius: 2px;
+  box-shadow: inset 4px 0 0 0 var(--warning-color);
 }
 
 /* =============================================
