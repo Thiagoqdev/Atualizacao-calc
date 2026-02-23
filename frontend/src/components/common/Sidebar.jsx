@@ -6,11 +6,13 @@ import {
   FaCalculator,
   FaChartLine,
   FaFileAlt,
+  FaFileSignature,
 } from 'react-icons/fa';
 
 const Sidebar = () => {
   const menuItems = [
-    { path: '/dashboard', icon: FaHome, label: 'Dashboard' },
+    { path: '/dashboard', icon: FaHome, label: 'Dashboard', end: true },
+    { path: '/dashboard/peticoes', icon: FaFileSignature, label: 'Criar Petições' },
     { path: '/processos', icon: FaGavel, label: 'Processos' },
     { path: '/calculos', icon: FaCalculator, label: 'Cálculos' },
     { path: '/indices', icon: FaChartLine, label: 'Índices' },
@@ -32,6 +34,7 @@ const Sidebar = () => {
             key={item.path}
             as={NavLink}
             to={item.path}
+            end={item.end}
             className={({ isActive }) =>
               `nav-link d-flex align-items-center ${isActive ? 'active' : ''}`
             }

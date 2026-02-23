@@ -165,6 +165,9 @@ public class FazendaPublicaCalculoService {
         BigDecimal indiceAnteriorInpc = null;
         BigDecimal indiceAnteriorIpcae = null;
         BigDecimal indiceAnteriorSelic = null;
+        LocalDate competenciaAnteriorInpc = null;
+        LocalDate competenciaAnteriorIpcae = null;
+        LocalDate competenciaAnteriorSelic = null;
 
         while (!competencia.isAfter(competenciaFinal)) {
             LocalDate dataRef = competencia;
@@ -178,13 +181,16 @@ public class FazendaPublicaCalculoService {
             // Determinar qual regime aplicar neste mês
             if (!dataRef.isBefore(MARCO_EC_136.withDayOfMonth(1))) {
                 // ═══ EC 136/2025: IPCA + juros 2% a.a. (limitado à SELIC) ═══
-                nomeIndice = "IPCA";
+                nomeIndice = "IPCA + 2%";
                 BigDecimal[] resultadoIpca = calcularMesIndice(valorCorrigidoAcumulado,
-                        competencia, ipcaeId, indiceAnteriorIpcae);
+                        competencia, ipcaeId, indiceAnteriorIpcae, competenciaAnteriorIpcae);
                 valorCorrigidoMes = resultadoIpca[0];
                 variacaoPercentual = resultadoIpca[1];
                 indiceValor = resultadoIpca[2];
                 indiceAnteriorIpcae = indiceValor;
+                if (indiceValor != null) {
+                    competenciaAnteriorIpcae = competencia;
+                }
 
                 // Juros: 2% a.a. simples sobre o principal
                 long meses = ChronoUnit.MONTHS.between(dataInicial.withDayOfMonth(1), competencia) + 1;
@@ -199,30 +205,40 @@ public class FazendaPublicaCalculoService {
                 if (totalSelic != null && totalIpcaJuros.compareTo(totalSelic) > 0) {
                     valorCorrigidoMes = totalSelic;
                     jurosMes = BigDecimal.ZERO;
-                    nomeIndice = "SELIC (Teto)";
+                    nomeIndice = "IPCA + 2%";
                 }
 
             } else if (!dataRef.isBefore(MARCO_EC_113.withDayOfMonth(1))) {
                 // ═══ EC 113/2021: SELIC unificada (correção + juros) ═══
                 // Aplica variação mensal da SELIC sobre o valor acumulado (preserva correções anteriores)
+                BigDecimal baseSelicMes = valorCorrigidoAcumulado;
+                if (deveIncorporarJurosNaEntradaDaSelic(competencia, jurosAcumulados)) {
+                    baseSelicMes = baseSelicMes.add(jurosAcumulados);
+                }
                 nomeIndice = "SELIC";
-                BigDecimal[] resultadoSelic = calcularMesIndice(valorCorrigidoAcumulado,
-                        competencia, selicId, indiceAnteriorSelic);
+                BigDecimal[] resultadoSelic = calcularMesIndice(baseSelicMes,
+                        competencia, selicId, indiceAnteriorSelic, competenciaAnteriorSelic);
                 valorCorrigidoMes = resultadoSelic[0];
                 variacaoPercentual = resultadoSelic[1];
                 indiceValor = resultadoSelic[2];
                 indiceAnteriorSelic = indiceValor;
+                if (indiceValor != null) {
+                    competenciaAnteriorSelic = competencia;
+                }
                 jurosMes = BigDecimal.ZERO; // SELIC já inclui juros
 
             } else if (!dataRef.isBefore(MARCO_INPC_IPCAE.withDayOfMonth(1))) {
                 // ═══ 01/1992 a 08/12/2021: IPCA-E para correção + juros separados ═══
                 nomeIndice = "IPCA-E";
                 BigDecimal[] resultadoIpca = calcularMesIndice(valorCorrigidoAcumulado,
-                        competencia, ipcaeId, indiceAnteriorIpcae);
+                        competencia, ipcaeId, indiceAnteriorIpcae, competenciaAnteriorIpcae);
                 valorCorrigidoMes = resultadoIpca[0];
                 variacaoPercentual = resultadoIpca[1];
                 indiceValor = resultadoIpca[2];
                 indiceAnteriorIpcae = indiceValor;
+                if (indiceValor != null) {
+                    competenciaAnteriorIpcae = competencia;
+                }
 
                 // Calcular juros simplificados
                 jurosMes = calcularJurosSimplificado(valorOriginal, valorCorrigidoMes,
@@ -232,11 +248,14 @@ public class FazendaPublicaCalculoService {
                 // ═══ Antes de 01/1992: INPC para correção + juros separados ═══
                 nomeIndice = "INPC";
                 BigDecimal[] resultadoInpc = calcularMesIndice(valorCorrigidoAcumulado,
-                        competencia, inpcId, indiceAnteriorInpc);
+                        competencia, inpcId, indiceAnteriorInpc, competenciaAnteriorInpc);
                 valorCorrigidoMes = resultadoInpc[0];
                 variacaoPercentual = resultadoInpc[1];
                 indiceValor = resultadoInpc[2];
                 indiceAnteriorInpc = indiceValor;
+                if (indiceValor != null) {
+                    competenciaAnteriorInpc = competencia;
+                }
 
                 // Calcular juros simplificados
                 jurosMes = calcularJurosSimplificado(valorOriginal, valorCorrigidoMes,
@@ -274,7 +293,8 @@ public class FazendaPublicaCalculoService {
      */
     private BigDecimal[] calcularMesIndice(BigDecimal valorAcumuladoAnterior,
                                             LocalDate competencia, Long indiceId,
-                                            BigDecimal indiceAnterior) {
+                                            BigDecimal indiceAnterior,
+                                            LocalDate competenciaAnteriorSerie) {
         BigDecimal valorCorrigido = valorAcumuladoAnterior;
         BigDecimal variacaoPercentual = null;
         BigDecimal indiceValor = null;
@@ -284,9 +304,11 @@ public class FazendaPublicaCalculoService {
             if (!indices.isEmpty()) {
                 indiceValor = indices.get(0).getValor();
 
-                if (indiceAnterior != null && indiceAnterior.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal indiceBaseVariacao = resolverIndiceBaseVariacao(
+                        indiceId, competencia, indiceAnterior, competenciaAnteriorSerie);
+                if (indiceBaseVariacao != null && indiceBaseVariacao.compareTo(BigDecimal.ZERO) > 0) {
                     // Variação mensal
-                    BigDecimal fatorMensal = indiceValor.divide(indiceAnterior, PRECISION, ROUNDING);
+                    BigDecimal fatorMensal = indiceValor.divide(indiceBaseVariacao, PRECISION, ROUNDING);
                     valorCorrigido = valorAcumuladoAnterior.multiply(fatorMensal).setScale(2, ROUNDING);
                     variacaoPercentual = fatorMensal.subtract(BigDecimal.ONE)
                             .multiply(CEM).setScale(4, ROUNDING);
@@ -297,6 +319,43 @@ public class FazendaPublicaCalculoService {
         }
 
         return new BigDecimal[]{valorCorrigido, variacaoPercentual, indiceValor};
+    }
+
+    private boolean deveIncorporarJurosNaEntradaDaSelic(LocalDate competencia, BigDecimal jurosAcumulados) {
+        if (jurosAcumulados == null || jurosAcumulados.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+
+        // Na migração para a SELIC unificada (EC 113/2021), a base deve carregar
+        // o subtotal acumulado do mês anterior (correção + juros já apurados).
+        return MARCO_EC_113.withDayOfMonth(1).equals(competencia);
+    }
+
+    private BigDecimal resolverIndiceBaseVariacao(Long indiceId,
+                                                  LocalDate competencia,
+                                                  BigDecimal indiceAnterior,
+                                                  LocalDate competenciaAnteriorSerie) {
+        if (indiceAnterior == null) {
+            return null;
+        }
+
+        if (competenciaAnteriorSerie == null || competenciaAnteriorSerie.plusMonths(1).equals(competencia)) {
+            return indiceAnterior;
+        }
+
+        LocalDate competenciaAnteriorEsperada = competencia.minusMonths(1);
+        try {
+            List<ValorIndice> indiceMesAnterior = correcaoService.obterIndicesNoPeriodo(
+                    indiceId, competenciaAnteriorEsperada, competenciaAnteriorEsperada);
+            if (!indiceMesAnterior.isEmpty()) {
+                return indiceMesAnterior.get(0).getValor();
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao buscar índice-base para {}: {}", competenciaAnteriorEsperada, e.getMessage());
+        }
+
+        // Fallback: sem índice base para fechar o gap, mantém o valor sem variação neste mês.
+        return null;
     }
 
     /**

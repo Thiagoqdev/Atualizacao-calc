@@ -39,6 +39,14 @@ function App() {
         }
       />
       <Route
+        path="/dashboard/peticoes"
+        element={
+          <PrivateRoute>
+            <DashboardPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/processos"
         element={
           <PrivateRoute>
@@ -88,8 +96,8 @@ function App() {
       />
 
       {/* Rota padrão */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

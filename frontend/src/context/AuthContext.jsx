@@ -19,12 +19,11 @@ export const AuthProvider = ({ children }) => {
 
   // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
-    const storedUsuario = localStorage.getItem('usuario');
-    const accessToken = localStorage.getItem('accessToken');
-
-    if (storedUsuario && accessToken) {
-      setUsuario(JSON.parse(storedUsuario));
-    }
+    // Requer novo login a cada abertura/reload da aplicação.
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('usuario');
+    setUsuario(null);
     setLoading(false);
   }, []);
 
