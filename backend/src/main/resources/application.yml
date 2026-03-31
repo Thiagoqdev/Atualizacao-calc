@@ -31,16 +31,9 @@ spring:
     baseline-on-migrate: true
 
   jackson:
-    date-format: yyyy-MM-dd'T'HH:mm:ss
-    time-zone: America/Sao_Paulo
     serialization:
       write-dates-as-timestamps: false
-
-# JWT Configuration
-jwt:
-  secret: ${JWT_SECRET:chave_secreta_muito_longa_com_pelo_menos_512_bits_para_hs512_algorithm_security_key_12345678901234567890}
-  expiration: 900000        # 15 minutos em milissegundos
-  refresh-expiration: 604800000  # 7 dias em milissegundos
+    time-zone: America/Sao_Paulo
 
 # OpenAPI / Swagger
 springdoc:
@@ -67,6 +60,5 @@ indices:
 logging:
   level:
     com.calculosjuridicos: DEBUG
-    org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

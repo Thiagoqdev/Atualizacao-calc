@@ -9,7 +9,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "processo", indexes = {
-    @Index(name = "idx_usuario", columnList = "usuario_id"),
     @Index(name = "idx_numero", columnList = "numero_processo")
 })
 @Getter
@@ -33,12 +32,8 @@ public class Processo {
     private String varaTribunal;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_acao", nullable = false, columnDefinition = "enum('TRABALHISTA','CIVEL','PREVIDENCIARIA','TRIBUTARIA')")
+    @Column(name = "tipo_acao", nullable = false, columnDefinition = "enum(TRABALHISTA,CIVEL,PREVIDENCIARIA,TRIBUTARIA)")
     private TipoAcao tipoAcao;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
 
     @Column(name = "data_criacao", nullable = false, updatable = false)
     @Builder.Default

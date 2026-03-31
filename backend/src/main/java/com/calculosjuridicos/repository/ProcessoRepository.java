@@ -10,26 +10,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ProcessoRepository extends JpaRepository<Processo, Long> {
 
-    Page<Processo> findByUsuarioId(Long usuarioId, Pageable pageable);
-
-    List<Processo> findByUsuarioId(Long usuarioId);
-
-    Optional<Processo> findByIdAndUsuarioId(Long id, Long usuarioId);
-
-    @Query("SELECT p FROM Processo p WHERE p.usuario.id = :usuarioId " +
-           "AND (:numeroProcesso IS NULL OR p.numeroProcesso LIKE %:numeroProcesso%) " +
+    @Query("SELECT p FROM Processo p WHERE " +
+           "(:numeroProcesso IS NULL OR p.numeroProcesso LIKE %:numeroProcesso%) " +
            "AND (:tipoAcao IS NULL OR p.tipoAcao = :tipoAcao)")
-    Page<Processo> findByUsuarioIdWithFilters(
-        @Param("usuarioId") Long usuarioId,
+    Page<Processo> findWithFilters(
         @Param("numeroProcesso") String numeroProcesso,
         @Param("tipoAcao") TipoAcao tipoAcao,
         Pageable pageable
     );
-
-    long countByUsuarioId(Long usuarioId);
 }

@@ -2,7 +2,6 @@ package com.calculosjuridicos.controller;
 
 import com.calculosjuridicos.dto.request.CalculoRequest;
 import com.calculosjuridicos.dto.response.ResultadoCalculoResponse;
-import com.calculosjuridicos.entity.Usuario;
 import com.calculosjuridicos.service.CalculoService;
 import com.calculosjuridicos.service.RelatorioService;
 import jakarta.validation.Valid;
@@ -12,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -61,23 +59,22 @@ public class RelatorioController {
     public ResponseEntity<byte[]> gerarRelatorio(
             @PathVariable Long id,
             @RequestParam(defaultValue = "pdf") String formato,
-            @RequestParam(defaultValue = "completo") String nivel,
-            @AuthenticationPrincipal Usuario usuario) {
+            @RequestParam(defaultValue = "completo") String nivel) {
 
         byte[] conteudo;
         String contentType;
         String filename;
 
         if ("xlsx".equalsIgnoreCase(formato) || "excel".equalsIgnoreCase(formato)) {
-            conteudo = relatorioService.gerarExcel(id, usuario.getId(), nivel);
+            conteudo = relatorioService.gerarExcel(id, nivel);
             contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             filename = "calculo_" + id + ".xlsx";
         } else if ("docx".equalsIgnoreCase(formato) || "word".equalsIgnoreCase(formato)) {
-            conteudo = relatorioService.gerarWord(id, usuario.getId(), nivel);
+            conteudo = relatorioService.gerarWord(id, nivel);
             contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
             filename = "calculo_" + id + ".docx";
         } else {
-            conteudo = relatorioService.gerarPdf(id, usuario.getId(), nivel);
+            conteudo = relatorioService.gerarPdf(id, nivel);
             contentType = MediaType.APPLICATION_PDF_VALUE;
             filename = "calculo_" + id + ".pdf";
         }

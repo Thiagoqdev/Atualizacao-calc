@@ -50,7 +50,6 @@ public class CalculoService {
     public ResultadoCalculoResponse preview(CalculoRequest request) {
         validarRequest(request);
 
-        // Desviar para serviço especializado se for Fazenda Pública
         if (request.getTipoCalculo() == TipoCalculo.FAZENDA_PUBLICA) {
             return fazendaPublicaService.calcular(request);
         }
@@ -62,8 +61,8 @@ public class CalculoService {
      * Cria um novo cálculo associado a um processo.
      */
     @Transactional
-    public Calculo criar(Long processoId, CalculoRequest request, Long usuarioId) {
-        Processo processo = processoRepository.findByIdAndUsuarioId(processoId, usuarioId)
+    public Calculo criar(Long processoId, CalculoRequest request) {
+        Processo processo = processoRepository.findById(processoId)
             .orElseThrow(() -> new ResourceNotFoundException("Processo", "id", processoId));
 
         validarRequest(request);
@@ -90,7 +89,6 @@ public class CalculoService {
             calculo.setTabelaIndice(tabela);
         }
 
-        // Adicionar parcelas se fornecidas
         if (request.getParcelas() != null && !request.getParcelas().isEmpty()) {
             for (CalculoRequest.ParcelaRequest parcelaReq : request.getParcelas()) {
                 ParcelaCalculo parcela = ParcelaCalculo.builder()
@@ -99,7 +97,6 @@ public class CalculoService {
                     .dataVencimento(parcelaReq.getDataVencimento())
                     .build();
 
-                // Indice especifico da parcela (override do global)
                 if (parcelaReq.getTabelaIndiceId() != null) {
                     TabelaIndice tabelaParcela = tabelaIndiceRepository.findById(parcelaReq.getTabelaIndiceId())
                         .orElseThrow(() -> new ResourceNotFoundException("TabelaIndice", "id", parcelaReq.getTabelaIndiceId()));
@@ -117,14 +114,13 @@ public class CalculoService {
      * Executa o cálculo e persiste o resultado.
      */
     @Transactional
-    public ResultadoCalculoResponse executar(Long calculoId, Long usuarioId) {
-        Calculo calculo = calculoRepository.findByIdAndUsuarioId(calculoId, usuarioId)
+    public ResultadoCalculoResponse executar(Long calculoId) {
+        Calculo calculo = calculoRepository.findById(calculoId)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", calculoId));
 
         CalculoRequest request = toRequest(calculo);
         ResultadoCalculoResponse response;
 
-        // Desviar para serviço especializado se for Fazenda Pública
         if (request.getTipoCalculo() == TipoCalculo.FAZENDA_PUBLICA) {
             response = fazendaPublicaService.calcular(request);
         } else {
@@ -132,7 +128,6 @@ public class CalculoService {
         }
         response.setCalculoId(calculoId);
 
-        // Persistir resultado
         ResultadoCalculo resultado = ResultadoCalculo.builder()
             .calculo(calculo)
             .valorCorrigido(response.getValorCorrigido())
@@ -148,7 +143,6 @@ public class CalculoService {
             log.warn("Erro ao serializar detalhamento: {}", e.getMessage());
         }
 
-        // Remover resultado anterior se existir
         resultadoCalculoRepository.findByCalculoId(calculoId)
             .ifPresent(r -> resultadoCalculoRepository.delete(r));
 
@@ -164,17 +158,17 @@ public class CalculoService {
      * Busca um cálculo por ID.
      */
     @Transactional(readOnly = true)
-    public Calculo buscarPorId(Long id, Long usuarioId) {
-        return calculoRepository.findByIdAndUsuarioId(id, usuarioId)
+    public Calculo buscarPorId(Long id) {
+        return calculoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", id));
     }
 
     /**
-     * Lista cálculos do usuário.
+     * Lista todos os cálculos.
      */
     @Transactional(readOnly = true)
-    public Page<Calculo> listarPorUsuario(Long usuarioId, Pageable pageable) {
-        return calculoRepository.findByUsuarioId(usuarioId, pageable);
+    public Page<Calculo> listar(Pageable pageable) {
+        return calculoRepository.findAll(pageable);
     }
 
     /**
@@ -189,8 +183,8 @@ public class CalculoService {
      * Exclui um cálculo.
      */
     @Transactional
-    public void excluir(Long id, Long usuarioId) {
-        Calculo calculo = calculoRepository.findByIdAndUsuarioId(id, usuarioId)
+    public void excluir(Long id) {
+        Calculo calculo = calculoRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", id));
         calculoRepository.delete(calculo);
     }
@@ -204,7 +198,6 @@ public class CalculoService {
         BigDecimal totalCorrigido = BigDecimal.ZERO;
         BigDecimal totalJuros = BigDecimal.ZERO;
 
-        // Se não há parcelas, usar valor principal como parcela única
         List<CalculoRequest.ParcelaRequest> parcelas = request.getParcelas();
         if (parcelas == null || parcelas.isEmpty()) {
             parcelas = List.of(CalculoRequest.ParcelaRequest.builder()
@@ -214,20 +207,16 @@ public class CalculoService {
                 .build());
         }
 
-        // Cache de indices para evitar N+1 queries
         Map<Long, TabelaIndice> indiceCache = new HashMap<>();
 
-        // Calcular cada parcela
         for (CalculoRequest.ParcelaRequest parcela : parcelas) {
             BigDecimal valorCorrigido;
             BigDecimal fatorCorrecao = BigDecimal.ONE;
 
-            // Determinar indice efetivo: per-parcela override ou global
             Long effectiveIndiceId = parcela.getTabelaIndiceId() != null
                 ? parcela.getTabelaIndiceId()
                 : request.getTabelaIndiceId();
 
-            // Resolver nome do indice para exibicao
             String indiceNome = null;
             if (effectiveIndiceId != null) {
                 TabelaIndice tabela = indiceCache.computeIfAbsent(effectiveIndiceId,
@@ -237,7 +226,6 @@ public class CalculoService {
                 }
             }
 
-            // Correção monetária
             if (effectiveIndiceId != null) {
                 valorCorrigido = correcaoService.calcular(
                     parcela.getValorOriginal(),
@@ -254,12 +242,10 @@ public class CalculoService {
                 valorCorrigido = parcela.getValorOriginal();
             }
 
-            // Base para juros
             BigDecimal baseJuros = Boolean.TRUE.equals(request.getJurosSobreCorrigido())
                 ? valorCorrigido
                 : parcela.getValorOriginal();
 
-            // Juros
             BigDecimal valorJuros = BigDecimal.ZERO;
             int mesesJuros = 0;
             if (request.getTaxaJuros() != null && request.getTaxaJuros().compareTo(BigDecimal.ZERO) > 0) {
@@ -289,17 +275,14 @@ public class CalculoService {
                 .build());
         }
 
-        // Subtotal
         BigDecimal subtotal = totalCorrigido.add(totalJuros);
 
-        // Multa
         BigDecimal valorMulta = BigDecimal.ZERO;
         if (request.getMultaPercentual() != null && request.getMultaPercentual().compareTo(BigDecimal.ZERO) > 0) {
             valorMulta = subtotal.multiply(request.getMultaPercentual())
                 .divide(CEM, 2, RoundingMode.HALF_UP);
         }
 
-        // Honorários
         BigDecimal baseHonorarios = subtotal.add(valorMulta);
         BigDecimal valorHonorarios = BigDecimal.ZERO;
         if (request.getHonorariosPercentual() != null && request.getHonorariosPercentual().compareTo(BigDecimal.ZERO) > 0) {
@@ -307,19 +290,15 @@ public class CalculoService {
                 .divide(CEM, 2, RoundingMode.HALF_UP);
         }
 
-        // Total final
         BigDecimal valorTotal = subtotal.add(valorMulta).add(valorHonorarios);
 
-        // Fator de correção geral (para exibição)
         BigDecimal fatorCorrecaoGeral = BigDecimal.ONE;
         if (request.getTabelaIndiceId() != null && request.getValorPrincipal().compareTo(BigDecimal.ZERO) > 0) {
             fatorCorrecaoGeral = totalCorrigido.divide(request.getValorPrincipal(), 6, RoundingMode.HALF_UP);
         }
 
-        // Gerar detalhamento mensal
         List<DetalhamentoMensalResponse> detalhamento = gerarDetalhamentoMensal(request);
 
-        // Calcular variação total do período
         BigDecimal variacaoTotalPeriodo = null;
         if (!detalhamento.isEmpty()) {
             BigDecimal primeiroIndice = detalhamento.get(0).getIndice();
@@ -354,7 +333,6 @@ public class CalculoService {
             return detalhamento;
         }
 
-        // Resolver nome do índice para exibição
         String nomeIndice = null;
         TabelaIndice tabela = tabelaIndiceRepository.findById(request.getTabelaIndiceId()).orElse(null);
         if (tabela != null) {
@@ -380,7 +358,6 @@ public class CalculoService {
             fatorAcumulado = indice.getValor().divide(indiceBase, 6, RoundingMode.HALF_UP);
             BigDecimal valorCorrigidoParcial = valorOriginal.multiply(fatorAcumulado).setScale(2, RoundingMode.HALF_UP);
 
-            // Variação percentual mês a mês
             BigDecimal variacaoPercentual = null;
             if (indiceAnterior != null && indiceAnterior.compareTo(BigDecimal.ZERO) > 0) {
                 variacaoPercentual = indice.getValor().subtract(indiceAnterior)
@@ -390,7 +367,6 @@ public class CalculoService {
             }
             indiceAnterior = indice.getValor();
 
-            // Juros acumulados até este mês
             long meses = ChronoUnit.MONTHS.between(request.getDataInicial(), indice.getCompetencia().plusMonths(1));
             BigDecimal jurosParcial = BigDecimal.ZERO;
             if (request.getTaxaJuros() != null && request.getTaxaJuros().compareTo(BigDecimal.ZERO) > 0 && meses > 0) {

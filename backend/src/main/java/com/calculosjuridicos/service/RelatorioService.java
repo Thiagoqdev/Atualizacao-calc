@@ -69,8 +69,8 @@ public class RelatorioService {
     // =====================================================================
 
     @Transactional(readOnly = true)
-    public byte[] gerarPdf(Long calculoId, Long usuarioId, String nivel) {
-        Calculo calculo = calculoRepository.findByIdAndUsuarioId(calculoId, usuarioId)
+    public byte[] gerarPdf(Long calculoId, String nivel) {
+        Calculo calculo = calculoRepository.findById(calculoId)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", calculoId));
 
         ResultadoCalculo resultado = resultadoCalculoRepository.findByCalculoId(calculoId)
@@ -109,8 +109,8 @@ public class RelatorioService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] gerarExcel(Long calculoId, Long usuarioId, String nivel) {
-        Calculo calculo = calculoRepository.findByIdAndUsuarioId(calculoId, usuarioId)
+    public byte[] gerarExcel(Long calculoId, String nivel) {
+        Calculo calculo = calculoRepository.findById(calculoId)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", calculoId));
 
         ResultadoCalculo resultado = resultadoCalculoRepository.findByCalculoId(calculoId)
@@ -301,8 +301,8 @@ public class RelatorioService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] gerarWord(Long calculoId, Long usuarioId, String nivel) {
-        Calculo calculo = calculoRepository.findByIdAndUsuarioId(calculoId, usuarioId)
+    public byte[] gerarWord(Long calculoId, String nivel) {
+        Calculo calculo = calculoRepository.findById(calculoId)
             .orElseThrow(() -> new ResourceNotFoundException("Calculo", "id", calculoId));
 
         ResultadoCalculo resultado = resultadoCalculoRepository.findByCalculoId(calculoId)

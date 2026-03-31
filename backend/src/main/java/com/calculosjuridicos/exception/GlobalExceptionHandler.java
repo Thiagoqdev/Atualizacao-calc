@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -58,30 +55,6 @@ public class GlobalExceptionHandler {
                 .message("Um ou mais campos possuem valores inválidos")
                 .validationErrors(errors)
                 .build());
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
-        log.warn("Credenciais inválidas: {}", ex.getMessage());
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, "Email ou senha inválidos"));
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-        log.warn("Erro de autenticação: {}", ex.getMessage());
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, "Falha na autenticação"));
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        log.warn("Acesso negado: {}", ex.getMessage());
-        return ResponseEntity
-            .status(HttpStatus.FORBIDDEN)
-            .body(ErrorResponse.of(HttpStatus.FORBIDDEN, "Acesso negado"));
     }
 
     @ExceptionHandler(Exception.class)

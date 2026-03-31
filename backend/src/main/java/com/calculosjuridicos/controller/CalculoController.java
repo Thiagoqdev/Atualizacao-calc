@@ -4,7 +4,6 @@ import com.calculosjuridicos.dto.request.CalculoRequest;
 import com.calculosjuridicos.dto.response.ResultadoCalculoResponse;
 import com.calculosjuridicos.entity.Calculo;
 import com.calculosjuridicos.entity.ResultadoCalculo;
-import com.calculosjuridicos.entity.Usuario;
 import com.calculosjuridicos.service.CalculoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,9 +37,8 @@ public class CalculoController {
     @Operation(summary = "Criar novo cálculo em um processo")
     public ResponseEntity<CalculoResponse> criar(
             @PathVariable Long processoId,
-            @Valid @RequestBody CalculoRequest request,
-            @AuthenticationPrincipal Usuario usuario) {
-        Calculo calculo = calculoService.criar(processoId, request, usuario.getId());
+            @Valid @RequestBody CalculoRequest request) {
+        Calculo calculo = calculoService.criar(processoId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(calculo));
     }
 
@@ -55,38 +52,31 @@ public class CalculoController {
     }
 
     @GetMapping("/calculos")
-    @Operation(summary = "Listar cálculos do usuário")
-    public ResponseEntity<Page<CalculoResponse>> listarMeusCalculos(
-            @AuthenticationPrincipal Usuario usuario,
+    @Operation(summary = "Listar todos os cálculos")
+    public ResponseEntity<Page<CalculoResponse>> listar(
             @PageableDefault(size = 10) Pageable pageable) {
-        Page<Calculo> calculos = calculoService.listarPorUsuario(usuario.getId(), pageable);
+        Page<Calculo> calculos = calculoService.listar(pageable);
         return ResponseEntity.ok(calculos.map(this::toResponse));
     }
 
     @GetMapping("/calculos/{id}")
     @Operation(summary = "Buscar cálculo por ID")
-    public ResponseEntity<CalculoResponse> buscarPorId(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Usuario usuario) {
-        Calculo calculo = calculoService.buscarPorId(id, usuario.getId());
+    public ResponseEntity<CalculoResponse> buscarPorId(@PathVariable Long id) {
+        Calculo calculo = calculoService.buscarPorId(id);
         return ResponseEntity.ok(toResponse(calculo));
     }
 
     @PostMapping("/calculos/{id}/executar")
     @Operation(summary = "Executar cálculo e persistir resultado")
-    public ResponseEntity<ResultadoCalculoResponse> executar(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Usuario usuario) {
-        ResultadoCalculoResponse response = calculoService.executar(id, usuario.getId());
+    public ResponseEntity<ResultadoCalculoResponse> executar(@PathVariable Long id) {
+        ResultadoCalculoResponse response = calculoService.executar(id);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/calculos/{id}")
     @Operation(summary = "Excluir cálculo")
-    public ResponseEntity<Void> excluir(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Usuario usuario) {
-        calculoService.excluir(id, usuario.getId());
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        calculoService.excluir(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -105,7 +95,6 @@ public class CalculoController {
                 .toList();
         }
 
-        // Mapear resultado se existir
         CalculoResponse.ResultadoResponse resultadoResponse = null;
         ResultadoCalculo resultado = calculo.getResultado();
         if (resultado != null) {

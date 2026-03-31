@@ -3,7 +3,6 @@ package com.calculosjuridicos.controller;
 import com.calculosjuridicos.dto.request.ProcessoRequest;
 import com.calculosjuridicos.entity.Processo;
 import com.calculosjuridicos.entity.TipoAcao;
-import com.calculosjuridicos.entity.Usuario;
 import com.calculosjuridicos.service.ProcessoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,31 +28,25 @@ public class ProcessoController {
     @PostMapping
     @Operation(summary = "Criar novo processo")
     public ResponseEntity<ProcessoResponse> criar(
-            @Valid @RequestBody ProcessoRequest request,
-            @AuthenticationPrincipal Usuario usuario) {
-        Processo processo = processoService.criar(request, usuario.getId());
+            @Valid @RequestBody ProcessoRequest request) {
+        Processo processo = processoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(processo));
     }
 
     @GetMapping
-    @Operation(summary = "Listar processos do usuário")
+    @Operation(summary = "Listar processos")
     public ResponseEntity<Page<ProcessoResponse>> listar(
-            @AuthenticationPrincipal Usuario usuario,
             @RequestParam(required = false) String numeroProcesso,
             @RequestParam(required = false) TipoAcao tipoAcao,
             @PageableDefault(size = 10) Pageable pageable) {
-        Page<Processo> processos = processoService.listarPorUsuario(
-            usuario.getId(), numeroProcesso, tipoAcao, pageable
-        );
+        Page<Processo> processos = processoService.listar(numeroProcesso, tipoAcao, pageable);
         return ResponseEntity.ok(processos.map(this::toResponse));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar processo por ID")
-    public ResponseEntity<ProcessoResponse> buscarPorId(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Usuario usuario) {
-        Processo processo = processoService.buscarPorId(id, usuario.getId());
+    public ResponseEntity<ProcessoResponse> buscarPorId(@PathVariable Long id) {
+        Processo processo = processoService.buscarPorId(id);
         return ResponseEntity.ok(toResponse(processo));
     }
 
@@ -62,18 +54,15 @@ public class ProcessoController {
     @Operation(summary = "Atualizar processo")
     public ResponseEntity<ProcessoResponse> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody ProcessoRequest request,
-            @AuthenticationPrincipal Usuario usuario) {
-        Processo processo = processoService.atualizar(id, request, usuario.getId());
+            @Valid @RequestBody ProcessoRequest request) {
+        Processo processo = processoService.atualizar(id, request);
         return ResponseEntity.ok(toResponse(processo));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Excluir processo")
-    public ResponseEntity<Void> excluir(
-            @PathVariable Long id,
-            @AuthenticationPrincipal Usuario usuario) {
-        processoService.excluir(id, usuario.getId());
+    public ResponseEntity<Void> excluir(@PathVariable Long id) {
+        processoService.excluir(id);
         return ResponseEntity.noContent().build();
     }
 
