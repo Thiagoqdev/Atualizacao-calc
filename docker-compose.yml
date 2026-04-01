@@ -10,6 +10,7 @@ services:
       MYSQL_DATABASE: calculos_juridicos
       MYSQL_USER: calcjuridico
       MYSQL_PASSWORD: CalcJur2026!App@Sec
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 128M
     ports:
       - "3307:3306"
     volumes:
@@ -17,10 +18,16 @@ services:
     networks:
       - calcjuridico-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pCalcJur2026!Root@Sec"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Backend Spring Boot
   backend:
@@ -29,23 +36,44 @@ services:
       dockerfile: Dockerfile
     platform: linux/amd64
     container_name: calcjuridico-backend
-    restart: unless-stopped
+    restart: on-failure:3
     ports:
       - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/calculos_juridicos?useSSL=false&serverTimezone=America/Sao_Paulo&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: calcjuridico
       SPRING_DATASOURCE_PASSWORD: CalcJur2026!App@Sec
-      # BCB SGS API Configuration
+      # JVM - limitar memória para evitar OOM kill
+      JAVA_TOOL_OPTIONS: >-
+        -Xms256m
+        -Xmx512m
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=70.0
+      # BCB SGS API
       INDICES_BCB_BASE_URL: https://api.bcb.gov.br
       INDICES_BCB_TIMEOUT: 30000
+      # Sync desabilitado no startup - usuário aciona manualmente
       INDICES_SYNC_ENABLED: "true"
       INDICES_SYNC_CRON: "0 0 6 15 * ?"
+      # Reduzir verbosidade dos logs em produção
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: WARN
+      LOGGING_LEVEL_COM_CALCULOSJURIDICOS: INFO
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - calcjuridico-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/api/indices > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   # Frontend React (nginx)
   frontend:
@@ -58,9 +86,15 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - calcjuridico-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
 volumes:
   mysql_data:

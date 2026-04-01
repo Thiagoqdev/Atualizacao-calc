@@ -6,7 +6,9 @@ import com.calculosjuridicos.dto.response.ResultadoCalculoResponse.*;
 import com.calculosjuridicos.entity.*;
 import com.calculosjuridicos.exception.BusinessException;
 import com.calculosjuridicos.exception.ResourceNotFoundException;
-import com.calculosjuridicos.repository.*;
+import com.calculosjuridicos.repository.CalculoRepository;
+import com.calculosjuridicos.repository.ResultadoCalculoRepository;
+import com.calculosjuridicos.repository.TabelaIndiceRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +35,6 @@ import java.util.Map;
 public class CalculoService {
 
     private final CalculoRepository calculoRepository;
-    private final ProcessoRepository processoRepository;
     private final TabelaIndiceRepository tabelaIndiceRepository;
     private final ResultadoCalculoRepository resultadoCalculoRepository;
     private final CorrecaoMonetariaService correcaoService;
@@ -58,17 +59,13 @@ public class CalculoService {
     }
 
     /**
-     * Cria um novo cálculo associado a um processo.
+     * Cria um novo cálculo.
      */
     @Transactional
-    public Calculo criar(Long processoId, CalculoRequest request) {
-        Processo processo = processoRepository.findById(processoId)
-            .orElseThrow(() -> new ResourceNotFoundException("Processo", "id", processoId));
-
+    public Calculo criar(CalculoRequest request) {
         validarRequest(request);
 
         Calculo calculo = Calculo.builder()
-            .processo(processo)
             .titulo(request.getTitulo() != null ? request.getTitulo() : "Cálculo " + LocalDateTime.now())
             .tipoCalculo(request.getTipoCalculo() != null ? request.getTipoCalculo() : TipoCalculo.PADRAO)
             .valorPrincipal(request.getValorPrincipal())
@@ -80,6 +77,8 @@ public class CalculoService {
             .multaPercentual(request.getMultaPercentual())
             .honorariosPercentual(request.getHonorariosPercentual())
             .jurosSobreCorrigido(request.getJurosSobreCorrigido())
+            .rpvPrecatorio(request.getRpvPrecatorio() != null ? request.getRpvPrecatorio() : false)
+            .dataRpvPrecatorio(request.getDataEmissaoRpvPrecatorio())
             .status(StatusCalculo.RASCUNHO)
             .build();
 
@@ -169,14 +168,6 @@ public class CalculoService {
     @Transactional(readOnly = true)
     public Page<Calculo> listar(Pageable pageable) {
         return calculoRepository.findAll(pageable);
-    }
-
-    /**
-     * Lista cálculos de um processo.
-     */
-    @Transactional(readOnly = true)
-    public Page<Calculo> listarPorProcesso(Long processoId, Pageable pageable) {
-        return calculoRepository.findByProcessoId(processoId, pageable);
     }
 
     /**
@@ -435,6 +426,8 @@ public class CalculoService {
             .multaPercentual(calculo.getMultaPercentual())
             .honorariosPercentual(calculo.getHonorariosPercentual())
             .jurosSobreCorrigido(calculo.getJurosSobreCorrigido())
+            .rpvPrecatorio(calculo.getRpvPrecatorio())
+            .dataEmissaoRpvPrecatorio(calculo.getDataRpvPrecatorio())
             .parcelas(parcelas)
             .build();
     }

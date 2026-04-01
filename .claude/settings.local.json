@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(git config:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(docker compose:*)",
+      "Bash(find /Users/thiagodev/Documents/projetos/Calculo Financeiro/Atualizacao-calc/frontend/src -type f \\\\\\(-name *.jsx -o -name *.tsx -o -name *.ts -o -name *.js \\\\\\))",
+      "Bash(docker --version)",
+      "Bash(docker exec:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(./mvnw compile:*)",
+      "Bash(curl -s http://localhost:8081/api/indices)",
+      "Bash(curl:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3:*)"
     ]
   }
 }

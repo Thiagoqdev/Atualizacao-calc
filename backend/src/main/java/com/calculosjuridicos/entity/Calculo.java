@@ -11,7 +11,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "calculo", indexes = {
-    @Index(name = "idx_processo", columnList = "processo_id"),
     @Index(name = "idx_status", columnList = "status")
 })
 @Getter
@@ -24,10 +23,6 @@ public class Calculo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "processo_id")
-    private Processo processo;
 
     @Column(nullable = false)
     private String titulo;

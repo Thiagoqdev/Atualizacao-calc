@@ -81,10 +81,10 @@ public class IndiceController {
             dataFinal = LocalDate.now();
         }
         if (dataInicial == null) {
-            dataInicial = dataFinal.minusYears(5);
+            dataInicial = LocalDate.of(2000, 1, 1);
         }
 
-        IndicesSyncService.SyncResult result = syncService.sincronizar(id, dataInicial, dataFinal);
+        IndicesSyncService.SyncResult result = syncService.sincronizarIncremental(id, dataInicial, dataFinal);
         return ResponseEntity.ok(new SyncResponse(
             result.registrosImportados(),
             result.registrosAtualizados(),
@@ -117,10 +117,10 @@ public class IndiceController {
             dataFinal = LocalDate.now();
         }
         if (dataInicial == null) {
-            dataInicial = dataFinal.minusYears(5);
+            dataInicial = LocalDate.of(2000, 1, 1);
         }
 
-        Map<String, IndicesSyncService.SyncResult> resultados = syncService.sincronizarTodos(dataInicial, dataFinal);
+        Map<String, IndicesSyncService.SyncResult> resultados = syncService.sincronizarTodosIncremental(dataInicial, dataFinal);
         Map<String, SyncResponse> response = new java.util.LinkedHashMap<>();
         resultados.forEach((nome, result) ->
             response.put(nome, new SyncResponse(

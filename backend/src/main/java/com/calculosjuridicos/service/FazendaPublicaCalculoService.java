@@ -73,6 +73,9 @@ public class FazendaPublicaCalculoService {
         LocalDate dataFinal = request.getDataFinal();
         BigDecimal valorOriginal = request.getValorPrincipal();
 
+        boolean isRpv = Boolean.TRUE.equals(request.getRpvPrecatorio());
+        LocalDate dataEmissaoRpv = request.getDataEmissaoRpvPrecatorio();
+
         // Buscar IDs dos índices no banco
         Long inpcId = buscarIdIndice(TabelaIndice.INPC);
         Long ipcaeId = buscarIdIndice(TabelaIndice.IPCA_E);
@@ -81,7 +84,8 @@ public class FazendaPublicaCalculoService {
         // Gerar detalhamento mensal com índices variáveis
         List<DetalhamentoMensalResponse> detalhamento = gerarDetalhamentoMensal(
                 valorOriginal, dataInicial, dataFinal,
-                inpcId, ipcaeId, selicId
+                inpcId, ipcaeId, selicId,
+                isRpv, dataEmissaoRpv
         );
 
         // Extrair totais do último mês do detalhamento
@@ -145,6 +149,9 @@ public class FazendaPublicaCalculoService {
     /**
      * Gera o detalhamento mensal com índices que mudam conforme a legislação.
      * Cobre o período de 1984 ao presente.
+     *
+     * Se isRpv=true e dataEmissaoRpv != null, a transição SELIC → IPCA+2% ocorre
+     * na data de emissão do RPV/Precatório ao invés de EC 136 (10/2025).
      */
     private List<DetalhamentoMensalResponse> gerarDetalhamentoMensal(
             BigDecimal valorOriginal,
@@ -152,7 +159,9 @@ public class FazendaPublicaCalculoService {
             LocalDate dataFinal,
             Long inpcId,
             Long ipcaeId,
-            Long selicId) {
+            Long selicId,
+            boolean isRpv,
+            LocalDate dataEmissaoRpv) {
 
         List<DetalhamentoMensalResponse> detalhamento = new ArrayList<>();
 
@@ -178,39 +187,68 @@ public class FazendaPublicaCalculoService {
             BigDecimal indiceValor = null;
             BigDecimal fatorAcumulado = BigDecimal.ONE;
 
-            // Determinar qual regime aplicar neste mês
-            if (!dataRef.isBefore(MARCO_EC_136.withDayOfMonth(1))) {
-                // ═══ EC 136/2025: IPCA + juros 2% a.a. (limitado à SELIC) ═══
-                nomeIndice = "IPCA + 2%";
-                BigDecimal[] resultadoIpca = calcularMesIndice(valorCorrigidoAcumulado,
-                        competencia, ipcaeId, indiceAnteriorIpcae, competenciaAnteriorIpcae);
-                valorCorrigidoMes = resultadoIpca[0];
-                variacaoPercentual = resultadoIpca[1];
-                indiceValor = resultadoIpca[2];
-                indiceAnteriorIpcae = indiceValor;
-                if (indiceValor != null) {
-                    competenciaAnteriorIpcae = competencia;
-                }
+            // ═══ Regime especial RPV/Precatório ═══
+            // Quando há emissão de RPV/Precatório:
+            //   - Até a data de emissão: SELIC (taxa unificada)
+            //   - A partir da data de emissão: IPCA + 2% a.a. (limitado à SELIC)
+            if (isRpv && dataEmissaoRpv != null) {
+                LocalDate marcoEmissao = dataEmissaoRpv.withDayOfMonth(1);
 
-                // Juros: 2% a.a. simples sobre o principal
-                long meses = ChronoUnit.MONTHS.between(dataInicial.withDayOfMonth(1), competencia) + 1;
-                jurosMes = valorOriginal.multiply(TAXA_2_AA)
-                        .divide(CEM, PRECISION, ROUNDING)
-                        .multiply(new BigDecimal(meses))
-                        .divide(new BigDecimal("12"), 2, ROUNDING);
+                if (dataRef.isBefore(marcoEmissao)) {
+                    // ═══ Antes da emissão: SELIC unificada ═══
+                    BigDecimal baseSelicMes = valorCorrigidoAcumulado;
+                    if (competencia.equals(dataInicial.withDayOfMonth(1)) || indiceAnteriorSelic == null) {
+                        // Primeiro mês ou entrada na SELIC: base é o valor acumulado
+                    } else if (jurosAcumulados.compareTo(BigDecimal.ZERO) > 0 && indiceAnteriorSelic == null) {
+                        baseSelicMes = baseSelicMes.add(jurosAcumulados);
+                    }
+                    nomeIndice = "SELIC";
+                    BigDecimal[] resultadoSelic = calcularMesIndice(baseSelicMes,
+                            competencia, selicId, indiceAnteriorSelic, competenciaAnteriorSelic);
+                    valorCorrigidoMes = resultadoSelic[0];
+                    variacaoPercentual = resultadoSelic[1];
+                    indiceValor = resultadoSelic[2];
+                    indiceAnteriorSelic = indiceValor;
+                    if (indiceValor != null) {
+                        competenciaAnteriorSelic = competencia;
+                    }
+                    jurosMes = BigDecimal.ZERO; // SELIC já inclui juros
 
-                // Limitar: se IPCA + juros > SELIC, usar SELIC
-                BigDecimal totalIpcaJuros = valorCorrigidoMes.add(jurosMes);
-                BigDecimal totalSelic = calcularValorSelic(valorOriginal, dataInicial, competencia, selicId);
-                if (totalSelic != null && totalIpcaJuros.compareTo(totalSelic) > 0) {
-                    valorCorrigidoMes = totalSelic;
-                    jurosMes = BigDecimal.ZERO;
+                } else {
+                    // ═══ Após emissão: IPCA + 2% a.a. (limitado à SELIC) ═══
                     nomeIndice = "IPCA + 2%";
+                    BigDecimal[] resultadoIpca = calcularMesIndice(valorCorrigidoAcumulado,
+                            competencia, ipcaeId, indiceAnteriorIpcae, competenciaAnteriorIpcae);
+                    valorCorrigidoMes = resultadoIpca[0];
+                    variacaoPercentual = resultadoIpca[1];
+                    indiceValor = resultadoIpca[2];
+                    indiceAnteriorIpcae = indiceValor;
+                    if (indiceValor != null) {
+                        competenciaAnteriorIpcae = competencia;
+                    }
+
+                    // Juros: 2% a.a. simples sobre o principal, contados a partir da emissão
+                    long mesesDesdeEmissao = ChronoUnit.MONTHS.between(marcoEmissao, competencia) + 1;
+                    jurosMes = valorOriginal.multiply(TAXA_2_AA)
+                            .divide(CEM, PRECISION, ROUNDING)
+                            .multiply(new BigDecimal(mesesDesdeEmissao))
+                            .divide(new BigDecimal("12"), 2, ROUNDING);
+
+                    // Limitar: se IPCA + juros > SELIC, usar SELIC
+                    BigDecimal totalIpcaJuros = valorCorrigidoMes.add(jurosMes);
+                    BigDecimal totalSelic = calcularValorSelic(valorOriginal, dataInicial, competencia, selicId);
+                    if (totalSelic != null && totalIpcaJuros.compareTo(totalSelic) > 0) {
+                        valorCorrigidoMes = totalSelic;
+                        jurosMes = BigDecimal.ZERO;
+                        nomeIndice = "IPCA + 2% (limitado SELIC)";
+                    }
                 }
 
+            // ═══ Regime padrão (sem RPV/Precatório) ═══
+            // Sem RPV: SELIC continua sendo aplicada após EC 113/2021.
+            // A transição para IPCA + 2% SÓ ocorre quando há emissão de RPV/Precatório.
             } else if (!dataRef.isBefore(MARCO_EC_113.withDayOfMonth(1))) {
                 // ═══ EC 113/2021: SELIC unificada (correção + juros) ═══
-                // Aplica variação mensal da SELIC sobre o valor acumulado (preserva correções anteriores)
                 BigDecimal baseSelicMes = valorCorrigidoAcumulado;
                 if (deveIncorporarJurosNaEntradaDaSelic(competencia, jurosAcumulados)) {
                     baseSelicMes = baseSelicMes.add(jurosAcumulados);

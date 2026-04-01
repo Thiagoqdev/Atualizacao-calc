@@ -60,6 +60,11 @@ public class CalculoRequest {
     @Builder.Default
     private Boolean jurosSobreCorrigido = true;
 
+    @Builder.Default
+    private Boolean rpvPrecatorio = false;
+
+    private LocalDate dataEmissaoRpvPrecatorio;
+
     private List<ParcelaRequest> parcelas;
 
     @Data

@@ -109,7 +109,7 @@ function CalculoResultadoPage() {
 
   const formatarPercentual = (valor) => {
     if (valor == null) return '0%';
-    return `${Number(valor).toFixed(2)}%`;
+    return `${Number(valor).toFixed(3)}%`;
   };
 
   const getStatusBadge = (status) => {
@@ -423,7 +423,7 @@ function CalculoResultadoPage() {
                   )}
                 </Card.Header>
                 <Card.Body>
-                  <div style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
+                  <div className="table-scroll-container">
                     <Table hover responsive size="sm" className="evolucao-table">
                       <thead className="sticky-top">
                         <tr>
@@ -450,7 +450,7 @@ function CalculoResultadoPage() {
                               </td>
                               <td className="text-end">
                                 {item.variacaoPercentual != null
-                                  ? `${Number(item.variacaoPercentual).toFixed(4)}%`
+                                  ? `${Number(item.variacaoPercentual).toFixed(3)}%`
                                   : '-'}
                               </td>
                               <td className="text-end">{formatarMoeda(item.valorCorrigidoParcial)}</td>

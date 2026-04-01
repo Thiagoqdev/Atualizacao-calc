@@ -133,8 +133,8 @@ const IndicesPage = () => {
   const formatarValor = (valor) => {
     if (!valor) return '-';
     return parseFloat(valor).toLocaleString('pt-BR', {
-      minimumFractionDigits: 4,
-      maximumFractionDigits: 8,
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
     });
   };
 
@@ -159,14 +159,12 @@ const IndicesPage = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="page-header">
         <div>
-          <h2 className="mb-1">Índices Monetários</h2>
-          <p className="text-muted mb-0">
-            Gerencie os índices de correção monetária
-          </p>
+          <h2>Índices Monetários</h2>
+          <p>Gerencie os índices de correção monetária utilizados nos cálculos</p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 flex-wrap">
           <Button
             variant="success"
             onClick={handleSincronizarTodos}
@@ -202,7 +200,7 @@ const IndicesPage = () => {
               <strong>Tabelas de Índices</strong>
             </Card.Header>
             <Card.Body className="p-0">
-              <div className="list-group list-group-flush">
+              <div className="list-group list-group-flush indices-tabelas">
                 {tabelas.map((tabela) => (
                   <button
                     key={tabela.id}
@@ -270,7 +268,7 @@ const IndicesPage = () => {
                   </div>
                 </div>
               ) : (
-                <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                <div className="table-scroll-container">
                   <Table hover className="mb-0">
                     <thead className="sticky-top bg-white">
                       <tr>

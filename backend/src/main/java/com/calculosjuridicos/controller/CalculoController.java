@@ -33,22 +33,11 @@ public class CalculoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/processos/{processoId}/calculos")
-    @Operation(summary = "Criar novo cálculo em um processo")
-    public ResponseEntity<CalculoResponse> criar(
-            @PathVariable Long processoId,
-            @Valid @RequestBody CalculoRequest request) {
-        Calculo calculo = calculoService.criar(processoId, request);
+    @PostMapping("/calculos")
+    @Operation(summary = "Criar novo cálculo")
+    public ResponseEntity<CalculoResponse> criar(@Valid @RequestBody CalculoRequest request) {
+        Calculo calculo = calculoService.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(calculo));
-    }
-
-    @GetMapping("/processos/{processoId}/calculos")
-    @Operation(summary = "Listar cálculos de um processo")
-    public ResponseEntity<Page<CalculoResponse>> listarPorProcesso(
-            @PathVariable Long processoId,
-            @PageableDefault(size = 10) Pageable pageable) {
-        Page<Calculo> calculos = calculoService.listarPorProcesso(processoId, pageable);
-        return ResponseEntity.ok(calculos.map(this::toResponse));
     }
 
     @GetMapping("/calculos")
@@ -111,7 +100,6 @@ public class CalculoController {
 
         return CalculoResponse.builder()
             .id(calculo.getId())
-            .processoId(calculo.getProcesso() != null ? calculo.getProcesso().getId() : null)
             .titulo(calculo.getTitulo())
             .tipoCalculo(calculo.getTipoCalculo())
             .valorPrincipal(calculo.getValorPrincipal())
@@ -139,7 +127,6 @@ public class CalculoController {
     @lombok.AllArgsConstructor
     public static class CalculoResponse {
         private Long id;
-        private Long processoId;
         private String titulo;
         private com.calculosjuridicos.entity.TipoCalculo tipoCalculo;
         private java.math.BigDecimal valorPrincipal;

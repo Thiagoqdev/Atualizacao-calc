@@ -87,10 +87,6 @@ public class RelatorioService {
                 adicionarNotaLegislativaPdf(document);
             }
 
-            if (calculo.getProcesso() != null) {
-                adicionarDadosProcessoPdf(document, calculo);
-            }
-
             adicionarParametrosPdf(document, calculo);
             adicionarResultadoPdf(document, resultado);
 
@@ -335,18 +331,6 @@ public class RelatorioService {
                 adicionarNotaLegislativaWord(document);
             }
 
-            // Dados do processo
-            if (calculo.getProcesso() != null) {
-                adicionarSecaoWord(document, "DADOS DO PROCESSO");
-                XWPFTable processoTable = document.createTable(3, 2);
-                setWordTableWidth(processoTable);
-                setWordTableRow(processoTable, 0, "Número:", calculo.getProcesso().getNumeroProcesso() != null ?
-                    calculo.getProcesso().getNumeroProcesso() : "-");
-                setWordTableRow(processoTable, 1, "Tipo de Ação:", calculo.getProcesso().getTipoAcao().toString());
-                setWordTableRow(processoTable, 2, "Vara/Tribunal:", calculo.getProcesso().getVaraTribunal() != null ?
-                    calculo.getProcesso().getVaraTribunal() : "-");
-                document.createParagraph();
-            }
 
             // Parâmetros do cálculo
             boolean isFazendaWord = calculo.getTipoCalculo() != null && calculo.getTipoCalculo() == TipoCalculo.FAZENDA_PUBLICA;
@@ -1033,27 +1017,6 @@ public class RelatorioService {
         subtitle.setSpacingAfter(20);
         document.add(subtitle);
 
-        document.add(new Paragraph(" "));
-    }
-
-    private void adicionarDadosProcessoPdf(Document document, Calculo calculo) throws DocumentException {
-        com.lowagie.text.Font sectionFont = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 12, com.lowagie.text.Font.BOLD, HEADER_BG);
-        Paragraph section = new Paragraph("DADOS DO PROCESSO", sectionFont);
-        section.setSpacingBefore(10);
-        section.setSpacingAfter(10);
-        document.add(section);
-
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setWidths(new float[]{1, 2});
-
-        addTableRow(table, "Número:", calculo.getProcesso().getNumeroProcesso() != null ?
-            calculo.getProcesso().getNumeroProcesso() : "-");
-        addTableRow(table, "Tipo de Ação:", calculo.getProcesso().getTipoAcao().toString());
-        addTableRow(table, "Vara/Tribunal:", calculo.getProcesso().getVaraTribunal() != null ?
-            calculo.getProcesso().getVaraTribunal() : "-");
-
-        document.add(table);
         document.add(new Paragraph(" "));
     }
 

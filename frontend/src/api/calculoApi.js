@@ -11,18 +11,13 @@ export const calculoApi = {
     return response.data;
   },
 
-  listarPorProcesso: async (processoId, params = {}) => {
-    const response = await apiClient.get(`/processos/${processoId}/calculos`, { params });
-    return response.data;
-  },
-
   buscarPorId: async (id) => {
     const response = await apiClient.get(`/calculos/${id}`);
     return response.data;
   },
 
-  criar: async (processoId, dados) => {
-    const response = await apiClient.post(`/processos/${processoId}/calculos`, dados);
+  criar: async (dados) => {
+    const response = await apiClient.post('/calculos', dados);
     return response.data;
   },
 

@@ -1,22 +1,34 @@
 import { Navbar as BsNavbar, Container, Nav } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
+import { FaBalanceScale } from 'react-icons/fa';
 
 const Navbar = () => {
   return (
-    <BsNavbar bg="white" expand="lg" className="shadow-sm py-2">
-      <Container fluid>
-        <BsNavbar.Brand as={Link} to="/dashboard" className="fw-bold text-primary">
-          Calculos Juridicos
+    <BsNavbar expand="lg" className="app-navbar">
+      <Container fluid className="px-4">
+        <BsNavbar.Brand as={Link} to="/dashboard" className="app-navbar-brand">
+          <span className="app-navbar-logo">
+            <FaBalanceScale />
+          </span>
+          <span className="app-navbar-title">
+            Cálculos Jurídicos
+            <span className="app-navbar-version">v2.0</span>
+          </span>
         </BsNavbar.Brand>
 
-        <BsNavbar.Toggle aria-controls="navbar-nav" />
+        <BsNavbar.Toggle aria-controls="navbar-nav" className="app-navbar-toggle" />
 
         <BsNavbar.Collapse id="navbar-nav">
-          <Nav className="ms-auto align-items-center">
-            <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-            <Nav.Link as={Link} to="/processos">Processos</Nav.Link>
-            <Nav.Link as={Link} to="/calculos">Calculos</Nav.Link>
-            <Nav.Link as={Link} to="/indices">Indices</Nav.Link>
+          <Nav className="ms-auto align-items-center gap-1">
+            <Nav.Link as={NavLink} to="/dashboard" end className="app-nav-link">
+              Dashboard
+            </Nav.Link>
+            <Nav.Link as={NavLink} to="/calculos" className="app-nav-link">
+              Cálculos
+            </Nav.Link>
+            <Nav.Link as={NavLink} to="/indices" className="app-nav-link">
+              Índices
+            </Nav.Link>
           </Nav>
         </BsNavbar.Collapse>
       </Container>

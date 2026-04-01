@@ -121,10 +121,10 @@ const CalculosPage = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="page-header">
         <div>
-          <h2 className="mb-1">Cálculos</h2>
-          <p className="text-muted mb-0">Gerencie seus cálculos de atualização</p>
+          <h2>Cálculos</h2>
+          <p>Gerencie seus cálculos de atualização financeira</p>
         </div>
         <Button variant="primary" as={Link} to="/calculos/novo">
           <FaPlus className="me-2" />
@@ -133,29 +133,27 @@ const CalculosPage = () => {
       </div>
 
       {/* Filtros */}
-      <Card className="mb-4">
-        <Card.Body>
-          <Row className="align-items-end">
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>Status</Form.Label>
-                <Form.Select
-                  value={filtroStatus}
-                  onChange={(e) => {
-                    setFiltroStatus(e.target.value);
-                    setPagination({ ...pagination, page: 0 });
-                  }}
-                >
-                  <option value="">Todos</option>
-                  <option value="RASCUNHO">Rascunho</option>
-                  <option value="CALCULADO">Calculado</option>
-                  <option value="FINALIZADO">Finalizado</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
+      <div className="calculos-filtros">
+        <Row className="align-items-end">
+          <Col md={3}>
+            <Form.Group>
+              <Form.Label>Status</Form.Label>
+              <Form.Select
+                value={filtroStatus}
+                onChange={(e) => {
+                  setFiltroStatus(e.target.value);
+                  setPagination({ ...pagination, page: 0 });
+                }}
+              >
+                <option value="">Todos</option>
+                <option value="RASCUNHO">Rascunho</option>
+                <option value="CALCULADO">Calculado</option>
+                <option value="FINALIZADO">Finalizado</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+      </div>
 
       {/* Tabela */}
       <Card>
@@ -258,36 +256,33 @@ const CalculosPage = () => {
 
         {/* Paginação */}
         {pagination.totalPages > 1 && (
-          <Card.Footer>
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="text-muted">
-                Mostrando {calculos.length} de {pagination.totalElements} cálculos
-              </span>
-              <div>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  className="me-2"
-                  disabled={pagination.page === 0}
-                  onClick={() =>
-                    setPagination({ ...pagination, page: pagination.page - 1 })
-                  }
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages - 1}
-                  onClick={() =>
-                    setPagination({ ...pagination, page: pagination.page + 1 })
-                  }
-                >
-                  Próxima
-                </Button>
-              </div>
+          <div className="pagination-bar">
+            <span>
+              Mostrando {calculos.length} de {pagination.totalElements} cálculos
+            </span>
+            <div className="d-flex gap-2">
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={pagination.page === 0}
+                onClick={() =>
+                  setPagination({ ...pagination, page: pagination.page - 1 })
+                }
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                disabled={pagination.page >= pagination.totalPages - 1}
+                onClick={() =>
+                  setPagination({ ...pagination, page: pagination.page + 1 })
+                }
+              >
+                Próxima
+              </Button>
             </div>
-          </Card.Footer>
+          </div>
         )}
       </Card>
     </Layout>

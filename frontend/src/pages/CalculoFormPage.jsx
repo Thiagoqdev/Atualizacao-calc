@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Row,
   Col,
@@ -30,7 +30,6 @@ import {
 import Layout from '../components/common/Layout';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import calculoApi from '../api/calculoApi';
-import processoApi from '../api/processoApi';
 import indiceApi from '../api/indiceApi';
 
 const TIPOS_JUROS = [
@@ -57,15 +56,12 @@ const getBadgeIndiceClass = (nomeIndice) => {
 };
 
 const CalculoFormPage = () => {
-  const [searchParams] = useSearchParams();
-  const processoId = searchParams.get('processoId');
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [calculando, setCalculando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [indices, setIndices] = useState([]);
-  const [processo, setProcesso] = useState(null);
   const [resultado, setResultado] = useState(null);
   const [downloadingPreview, setDownloadingPreview] = useState(false);
   const [view, setView] = useState('form'); // 'form' | 'resultado'
@@ -101,6 +97,8 @@ const CalculoFormPage = () => {
       honorariosPercentual: '0',
       jurosSobreCorrigido: true,
       mostrarMemorial: false,
+      rpvPrecatorio: false,
+      dataEmissaoRpvPrecatorio: '',
       parcelas: [],
     },
   });
@@ -112,21 +110,17 @@ const CalculoFormPage = () => {
 
   const tipoCalculo = watch('tipoCalculo');
   const isFazendaPublica = tipoCalculo === 'FAZENDA_PUBLICA';
+  const isRpvPrecatorio = watch('rpvPrecatorio');
 
   useEffect(() => {
     carregarDados();
-  }, [processoId]);
+  }, []);
 
   const carregarDados = async () => {
     try {
       setLoading(true);
-      const [indicesRes] = await Promise.all([indiceApi.listarTabelas()]);
+      const indicesRes = await indiceApi.listarTabelas();
       setIndices(indicesRes);
-
-      if (processoId) {
-        const processoRes = await processoApi.buscarPorId(processoId);
-        setProcesso(processoRes);
-      }
     } catch (error) {
       toast.error('Erro ao carregar dados');
     } finally {
@@ -152,16 +146,11 @@ const CalculoFormPage = () => {
   };
 
   const handleSalvar = async () => {
-    if (!processoId) {
-      toast.warning('Selecione um processo para salvar o cálculo');
-      return;
-    }
-
     setSalvando(true);
     try {
       const data = watch();
       const payload = prepararPayload(data);
-      const calculo = await calculoApi.criar(processoId, payload);
+      const calculo = await calculoApi.criar(payload);
       toast.success('Cálculo salvo com sucesso!');
       navigate(`/calculos/${calculo.id}`);
     } catch (error) {
@@ -218,6 +207,10 @@ const CalculoFormPage = () => {
       multaPercentual: parseFloat(data.multaPercentual) || 0,
       honorariosPercentual: parseFloat(data.honorariosPercentual) || 0,
       jurosSobreCorrigido: data.jurosSobreCorrigido,
+      rpvPrecatorio: !!data.rpvPrecatorio,
+      dataEmissaoRpvPrecatorio: data.rpvPrecatorio && data.dataEmissaoRpvPrecatorio
+        ? data.dataEmissaoRpvPrecatorio
+        : null,
     };
 
     if (data.tabelaIndiceId && data.tipoCalculo !== 'FAZENDA_PUBLICA') {
@@ -424,7 +417,7 @@ const CalculoFormPage = () => {
                   <Col sm={6} md={3}>
                     <div className="resultado-item">
                       <small className="text-muted">Variação Total</small>
-                      <p className="mb-0">{Number(resultado.variacaoTotalPeriodo).toFixed(4)}%</p>
+                      <p className="mb-0">{Number(resultado.variacaoTotalPeriodo).toFixed(3)}%</p>
                     </div>
                   </Col>
                 )}
@@ -487,7 +480,7 @@ const CalculoFormPage = () => {
                 {resultado.variacaoTotalPeriodo != null && (
                   <Alert variant="info" className="py-2">
                     <strong>Variação total no período:</strong>{' '}
-                    {Number(resultado.variacaoTotalPeriodo).toFixed(4)}%
+                    {Number(resultado.variacaoTotalPeriodo).toFixed(3)}%
                   </Alert>
                 )}
                 <div style={{ overflowX: 'auto' }}>
@@ -517,7 +510,7 @@ const CalculoFormPage = () => {
                             </td>
                             <td className="text-end">
                               {item.variacaoPercentual != null
-                                ? `${Number(item.variacaoPercentual).toFixed(4)}%`
+                                ? `${Number(item.variacaoPercentual).toFixed(3)}%`
                                 : '-'}
                             </td>
                             <td className="text-end">{formatarMoeda(item.valorCorrigidoParcial)}</td>
@@ -577,17 +570,15 @@ const CalculoFormPage = () => {
 
           {/* Botão salvar */}
           <div className="d-flex gap-2 mb-4">
-            {processoId && (
-              <Button
-                variant="success"
-                size="lg"
-                onClick={handleSalvar}
-                disabled={salvando}
-              >
-                <FaSave className="me-2" />
-                {salvando ? 'Salvando...' : 'Salvar Cálculo'}
-              </Button>
-            )}
+            <Button
+              variant="success"
+              size="lg"
+              onClick={handleSalvar}
+              disabled={salvando}
+            >
+              <FaSave className="me-2" />
+              {salvando ? 'Salvando...' : 'Salvar Cálculo'}
+            </Button>
             <Button variant="outline-secondary" size="lg" onClick={handleVoltar}>
               <FaArrowLeft className="me-2" />
               Novo Cálculo
@@ -604,22 +595,18 @@ const CalculoFormPage = () => {
   return (
     <Layout>
       <div className={view === 'form' ? 'view-transition-enter' : ''}>
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="page-header">
           <div>
             <Button
               variant="link"
-              className="p-0 mb-2"
+              className="p-0 mb-2 text-decoration-none"
               onClick={() => navigate(-1)}
             >
               <FaArrowLeft className="me-2" />
               Voltar
             </Button>
-            <h2 className="mb-1">Novo Cálculo</h2>
-            {processo && (
-              <p className="text-muted mb-0">
-                Processo: {processo.numeroProcesso || `#${processo.id}`}
-              </p>
-            )}
+            <h2>Novo Cálculo</h2>
+            <p>Preencha os dados para calcular a atualização monetária</p>
           </div>
         </div>
 
@@ -834,6 +821,45 @@ const CalculoFormPage = () => {
               <strong>Juros automáticos:</strong> Os juros moratórios são calculados automaticamente
               conforme a legislação vigente no período.
             </Alert>
+          )}
+
+          {isFazendaPublica && (
+            <Card className="mb-4 border-warning">
+              <Card.Header className="bg-warning bg-opacity-10">
+                <strong>RPV / Precatório</strong>
+              </Card.Header>
+              <Card.Body>
+                <Form.Check
+                  type="checkbox"
+                  id="rpvPrecatorio"
+                  label="Houve emissão de RPV ou Precatório"
+                  {...register('rpvPrecatorio')}
+                  className="mb-3 fw-semibold"
+                />
+                {isRpvPrecatorio && (
+                  <Form.Group>
+                    <Form.Label>
+                      Data de emissão do RPV / Precatório *
+                    </Form.Label>
+                    <Form.Control
+                      type="date"
+                      {...register('dataEmissaoRpvPrecatorio', {
+                        required: isRpvPrecatorio
+                          ? 'Informe a data de emissão do RPV/Precatório'
+                          : false,
+                      })}
+                      isInvalid={!!errors.dataEmissaoRpvPrecatorio}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.dataEmissaoRpvPrecatorio?.message}
+                    </Form.Control.Feedback>
+                    <Form.Text className="text-muted">
+                      A SELIC é aplicada até esta data. Após a emissão, o índice passa a ser IPCA + 2% a.a.
+                    </Form.Text>
+                  </Form.Group>
+                )}
+              </Card.Body>
+            </Card>
           )}
 
           <Card className="mb-4">

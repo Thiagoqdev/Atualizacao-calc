@@ -2,18 +2,14 @@ import { Nav } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
 import {
   FaHome,
-  FaGavel,
   FaCalculator,
   FaChartLine,
   FaFileAlt,
-  FaFileSignature,
 } from 'react-icons/fa';
 
 const Sidebar = () => {
   const menuItems = [
     { path: '/dashboard', icon: FaHome, label: 'Dashboard', end: true },
-    { path: '/dashboard/peticoes', icon: FaFileSignature, label: 'Criar Petições' },
-    { path: '/processos', icon: FaGavel, label: 'Processos' },
     { path: '/calculos', icon: FaCalculator, label: 'Cálculos' },
     { path: '/indices', icon: FaChartLine, label: 'Índices' },
   ];
@@ -46,7 +42,7 @@ const Sidebar = () => {
       </Nav>
 
       <div className="mt-auto text-center text-white-50 small py-3">
-        <small>v1.0.0</small>
+        <small>v2.0</small>
       </div>
     </div>
   );
